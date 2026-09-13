@@ -1,11 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router'
 import { InlineError } from '@/components/InlineError'
 import { Segmented } from '@/components/Segmented'
 import { PageSkeleton } from '@/components/Skeleton'
 import type { QuitItem, QuitRelapse } from '@/lib/database.types'
-import { fetchQuit } from './data'
-import { isMock, mockData } from './mock'
+import { useQuitData } from './data'
 
 export type QuitContext = {
   item: QuitItem | null
@@ -28,27 +26,7 @@ const SEGMENTS = [
 export function QuitLayout() {
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
-  const mock = isMock(search)
-  const [data, setData] = useState<{ item: QuitItem | null; relapses: QuitRelapse[] } | null>(null)
-  const [error, setError] = useState('')
-
-  const reload = useCallback(async () => {
-    // 写成 import.meta.env.DEV 字面量，生产构建里整段是死代码，mockData 会被 tree-shake 掉
-    if (import.meta.env.DEV && mock) {
-      setData(mockData())
-      return
-    }
-    setError('')
-    try {
-      setData(await fetchQuit())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '读取失败')
-    }
-  }, [mock])
-
-  useEffect(() => {
-    void reload()
-  }, [reload])
+  const { data, mock, error, reload } = useQuitData()
 
   return (
     <>

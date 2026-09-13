@@ -3,6 +3,7 @@ import { Check, X } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { cn } from '@/lib/cn'
 import { SiteAction, roundButton } from '@/components/AppShell'
+import { DatePicker } from '@/components/DatePicker'
 import { Segmented } from '@/components/Segmented'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,7 @@ import type { CountdownEvent } from '@/lib/database.types'
 import { CountdownList } from './CountdownList'
 import type { EventInput } from './data'
 import { categoriesOf, createEvent, deleteEvent, updateEvent, useEvents } from './data'
-import { REPEAT_LABEL, lunarText, toDateString } from './rules'
+import { REPEAT_LABEL, toDateString } from './rules'
 
 const REPEATS = (['none', 'yearly', 'monthly', 'weekly'] as const).map((value) => ({
   value,
@@ -180,17 +181,12 @@ export function CountdownForm() {
           />
 
           <div className={cn(label, 'mt-4')}>日期</div>
-          <Input
-            type="date"
-            className={cn(field, 'font-rounded')}
+          <DatePicker
+            className="mt-1"
             value={form.date}
-            onChange={(e) => patch({ date: e.target.value })}
+            showLunar={form.is_lunar}
+            onChange={(date) => patch({ date })}
           />
-          {form.is_lunar && form.date && (
-            <div className="mt-1 text-caption text-foreground-secondary">
-              农历{lunarText(form.date)}
-            </div>
-          )}
 
           <SwitchRow
             text="按农历"

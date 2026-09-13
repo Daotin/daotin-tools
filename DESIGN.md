@@ -32,6 +32,7 @@ description: 个人小工具站的全站通用视觉规则。浅紫灰底、白�
 |---|---|---|---|
 | `--background` | `oklch(0.965 0.012 285)` | `oklch(0.19 0.02 280)` | 页面底，浅紫灰 |
 | `--surface` | `oklch(1 0 0)` | `oklch(0.25 0.02 280)` | 卡片、输入框 |
+| `--surface-muted` | `oklch(0.955 0.012 285)` | `oklch(0.31 0.02 280)` | 白卡内的空格子（年视图日期格等），比卡片底浅/亮一档 |
 | `--surface-raised` | `oklch(1 0 0)` | `oklch(0.30 0.02 280)` | 弹层、菜单 |
 | `--border` | `oklch(0.91 0.012 285)` | `oklch(0.34 0.02 280)` | 只用于输入框和分隔线；卡片无边框 |
 | `--foreground` | `oklch(0.30 0.06 268)` | `oklch(0.95 0.01 280)` | 主文字，深海军蓝 |
@@ -194,7 +195,7 @@ description: 个人小工具站的全站通用视觉规则。浅紫灰底、白�
 
 ### Inputs / Fields
 
-高度 48px，`--radius-sm`。独立时 `--surface` 底 + 1px `--border`；在白卡内时 `--background` 底无边框。内边距 16px、`body` 字号。标签在输入框上方，`caption` 档。focus 时 2px `--tool-solid` 外环；错误时 `red` solid 外环，下方一行 `caption` 的 red 说明。数字输入框内容用 `--font-rounded` 600。日期时间用原生 `<input type="date">` / `datetime-local`，不用自定义选择器。
+高度 48px，`--radius-sm`。独立时 `--surface` 底 + 1px `--border`；在白卡内时 `--background` 底无边框。内边距 16px、`body` 字号。标签在输入框上方，`caption` 档。focus 时 2px `--tool-solid` 外环；错误时 `red` solid 外环，下方一行 `caption` 的 red 说明。数字输入框内容用 `--font-rounded` 600。日期时间默认用原生 `<input type="date">` / `datetime-local`；需要同时显示农历的地方（倒数日）用 `DatePicker` 双历选择器。
 
 ### Navigation
 
@@ -239,6 +240,6 @@ description: 个人小工具站的全站通用视觉规则。浅紫灰底、白�
 - 不做同尺寸同结构的重复卡片网格：首页卡片靠颜色、数字、迷你图彼此区分。
 - 不做居中大标题、不做 hero metric 模板（大数字 + 渐变 + 小标签那套）。
 - 不用 200、300 字重的数字，不用低于 `--foreground-secondary` 对比度的正文。
-- 不用底部 tab 栏，不用自定义滚动条，不用自定义日期选择器。
+- 不用底部 tab 栏，不用自定义滚动条，除双历 `DatePicker` 外不用自定义日期选择器。
 - 不为单个工具在 8 个槽之外发明新颜色，不发明新字号、新圆角。
 - 不学 Grow 的渐变圆环、3D 徽章、插画。

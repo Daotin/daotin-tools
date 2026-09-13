@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { CountdownEvent } from '@/lib/database.types'
-import { lunarText, nextOccurrence, sortEvents, toDateString } from './rules'
+import { lunarCellLabel } from '@/components/DatePicker'
+import { lunarText, nextOccurrence, parseDate, sortEvents, toDateString } from './rules'
 
 type Input = {
   date: string
@@ -142,5 +143,22 @@ describe('排序（验收 13）', () => {
     const today = new Date('2026-09-13T12:00:00')
     const order = sortEvents([make('过去', '2026-09-10'), make('未来', '2026-09-15')], today)
     expect(order[0].event.title).toBe('未来')
+  })
+})
+
+// DatePicker 是通用组件，但只有倒数日用到农历标签，用例先放这里。
+describe('日历格子的农历标签', () => {
+  it('节日优先于月名和日名', () => {
+    expect(lunarCellLabel(parseDate('2026-09-25'))).toBe('中秋')
+    expect(lunarCellLabel(parseDate('2026-02-17'))).toBe('春节')
+  })
+
+  it('每月初一显示月名，闰月带"闰"', () => {
+    expect(lunarCellLabel(parseDate('2026-08-13'))).toBe('七月')
+    expect(lunarCellLabel(parseDate('2025-07-25'))).toBe('闰六月')
+  })
+
+  it('普通日显示日名', () => {
+    expect(lunarCellLabel(parseDate('2026-06-25'))).toBe('十一')
   })
 })

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { useLocation } from 'react-router'
+import { useCachedQuery } from '@/lib/cache'
 import { isMock, mockHistory, mockLatest } from './mock'
 
 /** public/data/oil/latest.json，由 GitHub Actions 每天写入。 */
@@ -28,33 +29,26 @@ async function getJson<T>(path: string): Promise<T> {
 /**
  * 油价数据全部来自站内静态 JSON，不走 Supabase。
  * latest 读失败时 error 有值、latest 为 null（页面照样能手动输入算）；history 读失败按空处理。
+ * 有上次成功的缓存时先显示缓存，再后台刷新。
  */
+const LATEST_FAILED = '油价数据加载失败，可手动输入'
+
 export function useOil() {
   const { search } = useLocation()
-  const [latest, setLatest] = useState<OilLatest | null>(null)
-  const [history, setHistory] = useState<OilPoint[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const mock = isMock(search)
 
-  const reload = useCallback(() => {
-    setError(null)
-    if (import.meta.env.DEV && isMock(search)) {
-      const mock = mockLatest(search)
-      setLatest(mock)
-      setHistory(mockHistory(search))
-      if (!mock) setError('油价数据加载失败，可手动输入')
-      return
+  const fetcher = useCallback(async () => {
+    if (import.meta.env.DEV && mock) {
+      const latest = mockLatest(search)
+      if (!latest) throw new Error(LATEST_FAILED)
+      return { latest, history: mockHistory(search) }
     }
-    getJson<OilLatest>('/data/oil/latest.json')
-      .then(setLatest)
-      .catch(() => setError('油价数据加载失败，可手动输入'))
-    getJson<OilPoint[]>('/data/oil/history.json')
-      .then(setHistory)
-      .catch(() => setHistory([]))
-  }, [search])
+    const latest = await getJson<OilLatest>('/data/oil/latest.json').catch(() => {
+      throw new Error(LATEST_FAILED)
+    })
+    return { latest, history: await getJson<OilPoint[]>('/data/oil/history.json').catch(() => []) }
+  }, [mock, search])
 
-  useEffect(() => {
-    reload()
-  }, [reload])
-
-  return { latest, history, error, reload }
+  const { data, error, reload } = useCachedQuery(mock ? null : 'oil', fetcher)
+  return { latest: data?.latest ?? null, history: data?.history ?? null, error, reload }
 }

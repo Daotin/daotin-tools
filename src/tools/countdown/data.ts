@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { useLocation } from 'react-router'
+import { useCachedQuery } from '@/lib/cache'
 import { supabase } from '@/lib/supabase'
 import type { CountdownEvent } from '@/lib/database.types'
 import { isMock, mockEvents } from './mock'
@@ -46,30 +47,17 @@ export async function deleteEvent(id: string) {
   if (error) throw error
 }
 
-/** 列表、表单、详情、首页摘要共用的读取：?mock=1 时走假数据不碰数据库。 */
+/** 列表、表单、详情、首页摘要共用的读取：?mock=1 时走假数据不碰数据库、也不写缓存。 */
 export function useEvents() {
   const { search } = useLocation()
   const mock = isMock(search)
-  const [events, setEvents] = useState<CountdownEvent[] | null>(null)
-  const [error, setError] = useState('')
 
-  const reload = useCallback(async () => {
+  const fetcher = useCallback(async () => {
     // 字面量 import.meta.env.DEV 在生产构建里是死代码，mockEvents 会被 tree-shake 掉
-    if (import.meta.env.DEV && mock) {
-      setEvents(mockEvents())
-      return
-    }
-    setError('')
-    try {
-      setEvents(await fetchEvents())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '读取失败')
-    }
+    if (import.meta.env.DEV && mock) return mockEvents()
+    return fetchEvents()
   }, [mock])
 
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  return { events, mock, error, reload }
+  const { data, error, reload } = useCachedQuery(mock ? null : 'countdown', fetcher)
+  return { events: data, mock, error, reload }
 }

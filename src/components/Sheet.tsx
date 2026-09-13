@@ -34,7 +34,7 @@ export function Sheet({
       }}
       className={cn(
         'sheet mt-auto mb-0 w-full max-w-full rounded-t-lg bg-surface-raised p-6 text-foreground shadow-raised outline-none backdrop:bg-black/25',
-        'lg:my-auto lg:w-100 lg:rounded-lg',
+        'lg:m-auto lg:w-100 lg:rounded-lg',
       )}
     >
       <div className="mx-auto h-1 w-9 rounded-pill bg-border lg:hidden" />

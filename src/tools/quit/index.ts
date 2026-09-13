@@ -19,6 +19,7 @@ export const quit: Tool = {
   color: 'green',
   hasSettings: true,
   Summary: QuitSummary,
+  preload: () => import('./QuitLayout'),
   routes: [
     {
       element: createElement(QuitLayout),

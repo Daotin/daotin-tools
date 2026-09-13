@@ -20,7 +20,7 @@ export function OilSummary() {
         <span className="text-caption text-foreground-secondary">元/升</span>
       </div>
       {/* 右侧留出迷你折线的位置 */}
-      <div className="mt-0.5 pr-16 text-caption text-foreground-secondary">
+      <div className="mt-auto pt-0.5 pr-16 text-caption text-foreground-secondary">
         92# · {Number(month)}/{Number(day)}
       </div>
       {points.length > 1 && (

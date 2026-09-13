@@ -13,5 +13,6 @@ export const period: Tool = {
   color: 'pink',
   hasSettings: false,
   Summary: PeriodSummary,
+  preload: () => import('./PeriodPage'),
   routes: [{ index: true, element: createElement(PeriodPage) }],
 }

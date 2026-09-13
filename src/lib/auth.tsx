@@ -1,6 +1,7 @@
 import { createContext, use, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { Navigate, useLocation } from 'react-router'
+import { clearCache } from './cache'
 import { supabase } from './supabase'
 
 type SessionState = { session: Session | null; loading: boolean }
@@ -16,7 +17,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data }) => {
       setState({ session: data.session, loading: false })
     })
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      // 登出时清掉工具数据的本地缓存，换账号不会先闪一眼上一个人的数据
+      if (event === 'SIGNED_OUT') clearCache()
       setState({ session, loading: false })
     })
     return () => data.subscription.unsubscribe()

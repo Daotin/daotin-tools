@@ -17,7 +17,7 @@ export function CountdownSummary() {
         </span>
         {days !== 0 && <span className="text-caption text-foreground-secondary">天</span>}
       </div>
-      <div className="mt-0.5 text-caption text-foreground-secondary">
+      <div className="mt-auto pt-0.5 text-caption text-foreground-secondary">
         {first.event.title}
         {days === 0 ? '' : days > 0 ? ' · 还有' : ' · 已经'}
       </div>

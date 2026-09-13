@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback } from 'react'
 import { useLocation } from 'react-router'
+import { useCachedQuery } from '@/lib/cache'
 import { supabase } from '@/lib/supabase'
 import type { Period } from '@/lib/database.types'
 import { isMock, mockPeriods } from './mock'
@@ -34,30 +35,17 @@ export async function deletePeriod(id: string) {
   if (error) throw error
 }
 
-/** 日历页和首页摘要共用的读取：?mock=1 时走假数据不碰数据库。 */
+/** 日历页和首页摘要共用的读取：?mock=1 时走假数据不碰数据库、也不写缓存。 */
 export function usePeriods() {
   const { search } = useLocation()
   const mock = isMock(search)
-  const [periods, setPeriods] = useState<Period[] | null>(null)
-  const [error, setError] = useState('')
 
-  const reload = useCallback(async () => {
+  const fetcher = useCallback(async () => {
     // 字面量 import.meta.env.DEV 在生产构建里是死代码，mockPeriods 会被 tree-shake 掉
-    if (import.meta.env.DEV && mock) {
-      setPeriods(mockPeriods(search))
-      return
-    }
-    setError('')
-    try {
-      setPeriods(await fetchPeriods())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '读取失败')
-    }
+    if (import.meta.env.DEV && mock) return mockPeriods(search)
+    return fetchPeriods()
   }, [mock, search])
 
-  useEffect(() => {
-    void reload()
-  }, [reload])
-
-  return { periods, mock, error, reload }
+  const { data, error, reload } = useCachedQuery(mock ? null : 'period', fetcher)
+  return { periods: data, mock, error, reload }
 }

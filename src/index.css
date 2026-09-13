@@ -17,6 +17,7 @@
   /* 中性色 */
   --background: oklch(0.965 0.012 285);
   --surface: oklch(1 0 0);
+  --surface-muted: oklch(0.955 0.012 285);
   --surface-raised: oklch(1 0 0);
   --border: oklch(0.91 0.012 285);
   --foreground: oklch(0.30 0.06 268);
@@ -76,6 +77,7 @@
   /* 中性色 */
   --background: oklch(0.19 0.02 280);
   --surface: oklch(0.25 0.02 280);
+  --surface-muted: oklch(0.31 0.02 280);
   --surface-raised: oklch(0.30 0.02 280);
   --border: oklch(0.34 0.02 280);
   --foreground: oklch(0.95 0.01 280);
@@ -135,6 +137,7 @@
   /* 中性色 */
   --background: oklch(0.19 0.02 280);
   --surface: oklch(0.25 0.02 280);
+  --surface-muted: oklch(0.31 0.02 280);
   --surface-raised: oklch(0.30 0.02 280);
   --border: oklch(0.34 0.02 280);
   --foreground: oklch(0.95 0.01 280);
@@ -192,6 +195,7 @@
   /* 颜色 */
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-surface-raised: var(--surface-raised);
   --color-border: var(--border);
   --color-foreground: var(--foreground);
@@ -311,6 +315,17 @@
   }
   ::view-transition-new(root) {
     animation: page-in 250ms var(--ease-quint) both;
+  }
+}
+
+/* 骨架屏：很轻的呼吸，不是脉动。prefers-reduced-motion 由文末的全局规则归零 */
+.animate-breathe {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.6;
   }
 }
 

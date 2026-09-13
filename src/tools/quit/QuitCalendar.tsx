@@ -115,9 +115,11 @@ export function CalendarPanel() {
     )
 
   const weekEnd = endOfWeek(anchor, { weekStartsOn: 1 })
+  // 手机上这行右边还有周/月/年分段，写成 "9/7 – 9/13" 才不把分段顶出屏幕
+  const md = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`
   const title =
     view === 'week'
-      ? `${formatMonthDay(weekStart)} – ${formatMonthDay(weekEnd)}`
+      ? `${weekStart.getFullYear() === weekEnd.getFullYear() ? '' : `${weekStart.getFullYear()}/`}${md(weekStart)} – ${md(weekEnd)}`
       : view === 'month'
         ? `${anchor.getFullYear()} 年 ${anchor.getMonth() + 1} 月`
         : `${anchor.getFullYear()} 年`
@@ -174,9 +176,7 @@ export function CalendarPanel() {
           >
             <ChevronLeft className="size-5" />
           </button>
-          <span className="shrink-0 font-rounded text-body font-semibold whitespace-nowrap">
-            {title}
-          </span>
+          <span className="min-w-0 truncate font-rounded text-body font-semibold">{title}</span>
           <button
             type="button"
             aria-label="下一个"
@@ -212,7 +212,7 @@ export function CalendarPanel() {
                       key={i}
                       className={cn(
                         'aspect-square',
-                        d && countOf(d) > 0 && 'bg-red-soft',
+                        d && (countOf(d) > 0 ? 'bg-red-soft' : 'bg-surface-muted'),
                       )}
                     />
                   ))}

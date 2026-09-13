@@ -29,6 +29,8 @@ export type Tool = {
   hasSettings?: boolean
   /** 可选：首页卡片上的核心数字与说明 */
   Summary?: React.FC
+  /** 首页空闲时预取这个工具的懒加载 chunk，进工具时就不用再等下载 */
+  preload: () => Promise<unknown>
   /** 工具自己的子路由，挂在 path 下 */
   routes: RouteObject[]
 }

@@ -18,6 +18,7 @@ export const countdown: Tool = {
   color: 'orange',
   hasSettings: false,
   Summary: CountdownSummary,
+  preload: () => import('./CountdownList'),
   routes: [
     { index: true, element: createElement(CountdownList) },
     // 新建/编辑：手机是全屏二级页，电脑是列表右侧的滑出面板（组件内部按宽度切换）

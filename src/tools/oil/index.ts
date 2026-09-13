@@ -14,5 +14,6 @@ export const oil: Tool = {
   color: 'blue',
   hasSettings: false,
   Summary: OilSummary,
+  preload: () => import('./OilPage'),
   routes: [{ index: true, element: createElement(OilPage) }],
 }

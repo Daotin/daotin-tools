@@ -1,11 +1,29 @@
+import { useCallback } from 'react'
+import { useLocation } from 'react-router'
+import { useCachedQuery } from '@/lib/cache'
 import { supabase } from '@/lib/supabase'
 import type { QuitItem, QuitRelapse } from '@/lib/database.types'
+import { isMock, mockData } from './mock'
+
+export type QuitData = { item: QuitItem | null; relapses: QuitRelapse[] }
+
+/** 工具页和首页摘要共用的读取：?mock=1 时走假数据不碰数据库、也不写缓存。 */
+export function useQuitData() {
+  const { search } = useLocation()
+  const mock = isMock(search)
+
+  const fetcher = useCallback(async () => {
+    // 字面量 import.meta.env.DEV 在生产构建里是死代码，mockData 会被 tree-shake 掉
+    if (import.meta.env.DEV && mock) return mockData()
+    return fetchQuit()
+  }, [mock])
+
+  const { data, error, reload } = useCachedQuery<QuitData>(mock ? null : 'quit', fetcher)
+  return { data, mock, error, reload }
+}
 
 /** 界面上只有一个戒断项，取最早建的那条。 */
-export async function fetchQuit(): Promise<{
-  item: QuitItem | null
-  relapses: QuitRelapse[]
-}> {
+export async function fetchQuit(): Promise<QuitData> {
   const { data: items, error } = await supabase
     .from('quit_items')
     .select('*')

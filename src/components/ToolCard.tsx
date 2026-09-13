@@ -25,7 +25,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
           '--tool-soft': `var(--${tool.color}-soft)`,
         } as React.CSSProperties
       }
-      className="relative block rounded-md bg-surface p-5 transition-transform active:scale-[0.98]"
+      className="relative flex h-full flex-col rounded-md bg-surface p-5 transition-transform active:scale-[0.98]"
     >
       <IconBadge icon={tool.icon} size={44} color={tool.color} />
       <div className="mt-2 font-rounded text-body-sm font-semibold text-foreground-secondary">
