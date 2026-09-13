@@ -2,7 +2,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { Period } from '@/lib/database.types'
 import type { Prediction } from './predict'
-import { addDays, parseDate, periodEnd, startOfDay } from './predict'
+import { addDays, OVULATION_CAPTION, parseDate, periodEnd, startOfDay } from './predict'
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -190,6 +190,7 @@ export function PeriodCalendar({
         <Legend color="var(--teal-soft)" text="排卵期" />
         <Legend color="var(--tool-soft)" ring="var(--tool-solid)" text="今天" />
       </div>
+      <div className="mt-1 text-caption text-foreground-tertiary">{OVULATION_CAPTION}</div>
     </div>
   )
 }

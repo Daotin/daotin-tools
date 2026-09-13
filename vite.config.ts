@@ -12,8 +12,8 @@ export default defineConfig({
       // 有新版本时页面底部提示，不自动刷新（页面里有表单，自动刷会刷掉正在填的内容）
       registerType: 'prompt',
       manifest: {
-        name: '工具',
-        short_name: '工具',
+        name: 'Daotin 的工具箱',
+        short_name: '工具箱',
         description: '个人小工具站',
         lang: 'zh-CN',
         display: 'standalone',

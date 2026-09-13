@@ -1,4 +1,4 @@
-import { ToolCardOpen } from '@/components/ToolCard'
+import { ToolCardOpen, ToolCardSkeleton } from '@/components/ToolCard'
 import { useQuitData } from './data'
 import { computeStats, weeklyCounts } from './stats'
 
@@ -6,7 +6,9 @@ import { computeStats, weeklyCounts } from './stats'
 export function QuitSummary() {
   const { data } = useQuitData()
 
-  if (!data?.item) return <ToolCardOpen />
+  // data 为 null 是还没取回来（骨架），取回来但没有戒断项才是空态（"打开"）
+  if (!data) return <ToolCardSkeleton />
+  if (!data.item) return <ToolCardOpen />
 
   const days = computeStats(data.item.start_at, data.relapses).currentDays
   const weeks = weeklyCounts(data.relapses, 7)

@@ -1,11 +1,13 @@
-import { ToolCardOpen } from '@/components/ToolCard'
+import { ToolCardOpen, ToolCardSkeleton } from '@/components/ToolCard'
 import { useEvents } from './data'
 import { sortEvents } from './rules'
 
 /** 首页卡片摘要：最近一条的天数（排序后的第一条）。没有事件时按 ui-spec 第 2 节显示"打开"。 */
 export function CountdownSummary() {
   const { events } = useEvents()
-  const first = events && events.length > 0 ? sortEvents(events)[0] : null
+  // events 为 null 是还没取回来（骨架），取回来是空数组才是空态（"打开"）
+  if (!events) return <ToolCardSkeleton />
+  const first = events.length > 0 ? sortEvents(events)[0] : null
   if (!first) return <ToolCardOpen />
 
   const { days } = first.occurrence

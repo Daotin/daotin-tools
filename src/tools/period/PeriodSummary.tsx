@@ -1,4 +1,4 @@
-import { ToolCardOpen } from '@/components/ToolCard'
+import { ToolCardOpen, ToolCardSkeleton } from '@/components/ToolCard'
 import { usePeriods } from './data'
 import { predict, statusText } from './predict'
 
@@ -6,7 +6,9 @@ import { predict, statusText } from './predict'
 export function PeriodSummary() {
   const { periods } = usePeriods()
 
-  const status = statusText(periods ?? [], predict(periods ?? []))
+  // periods 为 null 是还没取回来（骨架），取回来但算不出状态才是空态（"打开"）
+  if (!periods) return <ToolCardSkeleton />
+  const status = statusText(periods, predict(periods))
   if (!status) return <ToolCardOpen />
 
   return (

@@ -6,18 +6,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import type { Period } from '@/lib/database.types'
+import { toDateString } from '@/lib/date'
 import type { PeriodInput } from './data'
 
 const label = 'text-caption text-foreground-secondary'
 /** 卡内输入框：--background 底、无边框。 */
 const field = 'mt-1 border-0 bg-background font-rounded'
 
+/** 今天的 'YYYY-MM-DD'，给 <input type="date"> 的 max 和校验共用。 */
+const todayString = () => toDateString(new Date())
+
 /**
- * 校验：结束日不能早于开始日，且不能与其他记录重叠。
+ * 校验：开始日、结束日都不能晚于今天，结束日不能早于开始日，且不能与其他记录重叠。
  * 其他记录没填结束日时只占开始日那一天（它的推算区间不是用户确认过的事实）。
  */
 export function validate(input: PeriodInput, others: Period[]): string {
   if (!input.start_date) return '请选择开始日'
+  const today = todayString()
+  if (input.start_date > today) return '开始日不能晚于今天'
+  if (input.end_date && input.end_date > today) return '结束日不能晚于今天'
   if (input.end_date && input.end_date < input.start_date) return '结束日不能早于开始日'
   const end = input.end_date ?? input.start_date
   for (const other of others) {
@@ -83,6 +90,7 @@ export function PeriodEditor({
       <Input
         type="date"
         className={field}
+        max={todayString()}
         value={start}
         onChange={(e) => setStart(e.target.value)}
       />
@@ -91,6 +99,7 @@ export function PeriodEditor({
       <Input
         type="date"
         className={field}
+        max={todayString()}
         disabled={open}
         value={open ? '' : end}
         onChange={(e) => setEnd(e.target.value)}

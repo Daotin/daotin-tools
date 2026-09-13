@@ -11,6 +11,19 @@ export function ToolCardOpen() {
   )
 }
 
+/**
+ * 有 Summary 的工具在摘要就绪前占住数字行和说明行。
+ * 形状对应 Summary：32px 的数字块 + 13px 的说明行；不显示"打开"，免得数字落地时跳一下。
+ */
+export function ToolCardSkeleton() {
+  return (
+    <>
+      <Skeleton className="mt-1 h-8 w-20" />
+      <Skeleton className="mt-auto h-[13px] w-16" />
+    </>
+  )
+}
+
 /** 首页工具卡：44px 图标底 → 工具名 → 核心数字（无摘要时显示"打开"）→ 一行说明。 */
 export function ToolCard({ tool }: { tool: Tool }) {
   const { Summary } = tool
@@ -33,7 +46,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
       </div>
       {Summary ? (
         /* 摘要组件是按需加载的 chunk（农历、图表都在里面），加载期间占住数字那一行 */
-        <Suspense fallback={<Skeleton className="mt-2 h-8 w-24 bg-background" />}>
+        <Suspense fallback={<ToolCardSkeleton />}>
           <Summary />
         </Suspense>
       ) : (

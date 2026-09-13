@@ -33,8 +33,9 @@ export function Sheet({
         if (e.target === ref.current) onClose()
       }}
       className={cn(
-        'sheet mt-auto mb-0 w-full max-w-full rounded-t-lg bg-surface-raised p-6 text-foreground shadow-raised outline-none backdrop:bg-black/25',
-        'lg:m-auto lg:w-100 lg:rounded-lg',
+        // 定位（手机贴底 / 电脑居中）在 index.css 的 .sheet 里，不依赖 <dialog> 的 UA 样式
+        'sheet w-full max-w-full rounded-t-lg bg-surface-raised p-6 text-foreground shadow-raised outline-none backdrop:bg-black/25',
+        'lg:w-100 lg:rounded-lg',
       )}
     >
       <div className="mx-auto h-1 w-9 rounded-pill bg-border lg:hidden" />

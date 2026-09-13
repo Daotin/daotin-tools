@@ -16,7 +16,9 @@ import type { PeriodInput } from './data'
 import { createPeriod, deletePeriod, updatePeriod, usePeriods } from './data'
 import type { Cycle, Prediction } from './predict'
 import {
+  backtestText,
   formatMonthDay,
+  OVULATION_CAPTION,
   parseDate,
   periodEnd,
   predict,
@@ -45,6 +47,7 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
       <Input
         type="date"
         className="mt-3 border-0 bg-surface font-rounded"
+        max={toDateString(new Date())}
         value={date}
         onChange={(e) => setDate(e.target.value)}
       />
@@ -78,9 +81,12 @@ function Hero({ periods, prediction }: { periods: Period[]; prediction: Predicti
         <span className="text-caption text-foreground-secondary">{status.unit}</span>
       </div>
       <div className="mt-0.5 text-heading">{status.title}</div>
-      {prediction.confidence !== 'high' && (
-        <div className="mt-1 text-caption text-foreground-secondary">数据较少，仅供参考</div>
+      {status.summary === '排卵期中' && (
+        <div className="mt-0.5 text-caption text-foreground-tertiary">{OVULATION_CAPTION}</div>
       )}
+      <div className="mt-1 text-caption text-foreground-secondary">
+        {backtestText(prediction)}
+      </div>
     </HeroCard>
   )
 }
@@ -108,7 +114,7 @@ function History({ cycles, onPick }: { cycles: Cycle[]; onPick: (period: Period)
                 {days ? `${days} 天` : '进行中'}
                 {length !== null && ` · 周期 ${length} 天`}
                 {length !== null && !counted && (
-                  <span className="text-foreground-tertiary"> 不参与预测</span>
+                  <span className="text-foreground-tertiary"> 未参与估算</span>
                 )}
               </div>
             </div>
@@ -129,6 +135,8 @@ export function PeriodPage() {
 
   const list = periods ?? []
   const prediction = predict(list)
+  // 未来的日子只能看，不能标记（记录写进去会算错周期）
+  const future = !!selected && selected > startOfDay(new Date())
 
   /**
    * 假数据模式下不写数据库，只走一遍 UI。
@@ -221,6 +229,9 @@ export function PeriodPage() {
           onClose={() => setSelected(null)}
           title={formatMonthDay(selected)}
         >
+          {future && (
+            <div className="mt-1 text-caption text-foreground-secondary">不能标记未来日期</div>
+          )}
           {owner ? (
             <>
               <div className="mt-1 text-body-sm text-foreground-secondary">
@@ -230,7 +241,7 @@ export function PeriodPage() {
               {!owner.end_date && selected > parseDate(owner.start_date) && (
                 <Button
                   className="mt-5 w-full bg-tool-solid text-white"
-                  disabled={busy}
+                  disabled={busy || future}
                   onClick={async () => {
                     const ok = await write(() =>
                       updatePeriod(owner.id, {
@@ -277,14 +288,14 @@ export function PeriodPage() {
             <>
               <Button
                 className="mt-5 w-full bg-tool-solid text-white"
-                disabled={busy}
+                disabled={busy || future}
                 onClick={() => markStart(selected)}
               >
                 标记为经期开始
               </Button>
               <Button
                 className="mt-3 w-full bg-tool-soft text-tool-solid"
-                disabled={busy || !openRecord}
+                disabled={busy || future || !openRecord}
                 onClick={async () => {
                   if (!openRecord) return
                   const ok = await write(() =>
@@ -300,7 +311,7 @@ export function PeriodPage() {
               >
                 标记为经期结束
               </Button>
-              {!openRecord && (
+              {!openRecord && !future && (
                 <div className="mt-2 text-caption text-foreground-secondary">
                   没有还没结束的经期记录，先标记一次开始
                 </div>

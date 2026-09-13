@@ -133,7 +133,13 @@
 }
 
 /* ===== 深色：手动指定 ===== */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 :root[data-theme="dark"] {
+  color-scheme: dark;
+
   /* 中性色 */
   --background: oklch(0.19 0.02 280);
   --surface: oklch(0.25 0.02 280);
@@ -318,14 +324,20 @@
   }
 }
 
-/* 骨架屏：很轻的呼吸，不是脉动。prefers-reduced-motion 由文末的全局规则归零 */
-.animate-breathe {
-  animation: breathe 1.6s ease-in-out infinite;
+/* 弹层定位：手机贴底部抽屉，电脑（≥1024px）居中对话框。
+   不靠 <dialog> 的 UA 样式居中——各浏览器的 inset / margin 默认值不一致，
+   Safari 下会贴到左边，所以这里自己写死 inset + margin: auto。 */
+.sheet {
+  margin-top: auto;
+  margin-bottom: 0;
 }
 
-@keyframes breathe {
-  50% {
-    opacity: 0.6;
+@media (min-width: 64rem) {
+  .sheet {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    height: fit-content;
   }
 }
 

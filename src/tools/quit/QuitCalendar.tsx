@@ -63,12 +63,13 @@ function Day({
 }) {
   const today = isSameDay(date, new Date())
   const future = date.getTime() > Date.now()
+  // 今天是实心圆白字，优先于破戒的 soft 底；选中是 2px 圆环，不占底色，两者可以叠
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        'flex flex-col items-center justify-center gap-1',
+        'relative flex items-center justify-center',
         size === 'week' ? 'h-14' : 'h-11',
       )}
     >
@@ -76,22 +77,19 @@ function Day({
         className={cn(
           'flex size-8 items-center justify-center rounded-pill font-rounded text-body-sm font-semibold',
           future && 'text-foreground-tertiary',
-          selected && 'bg-tool-soft',
-          today && 'ring-2 ring-tool-solid',
+          today
+            ? 'bg-tool-solid text-white'
+            : count > 0 && 'bg-red-soft text-red-solid',
+          selected && 'ring-2 ring-tool-solid',
         )}
       >
         {date.getDate()}
       </span>
-      {count > 0 ? (
-        count > 1 ? (
-          <span className="font-rounded text-caption leading-none font-semibold text-red-solid">
-            {count}
-          </span>
-        ) : (
-          <i className="size-1.5 rounded-pill bg-red-solid" />
-        )
-      ) : (
-        <i className="size-1.5" />
+      {/* 多次破戒写次数；今天是实心圆盖掉了 soft 底，破戒一次也要靠角标才看得出来 */}
+      {(count > 1 || (today && count > 0)) && (
+        <span className="absolute top-0.5 right-1 flex size-3.5 items-center justify-center rounded-[5px] bg-red-solid font-rounded text-caption leading-none font-semibold text-white">
+          {count}
+        </span>
       )}
     </button>
   )
@@ -202,16 +200,17 @@ export function CalendarPanel() {
         </div>
 
         {view === 'year' ? (
-          <div className="mt-2 grid grid-cols-3 gap-3">
+          /* 格子写死 8px、间距 2px：跟着列宽走的话 390px 上一个迷你月就有 98px 宽，12 个月撑出滚动条 */
+          <div className="mt-2 grid grid-cols-3 justify-items-center gap-3">
             {Array.from({ length: 12 }, (_, m) => (
               <div key={m}>
                 <div className="text-caption text-foreground-secondary">{m + 1} 月</div>
-                <div className="mt-1 grid grid-cols-7 gap-px">
+                <div className="mt-1 grid grid-cols-7 gap-0.5">
                   {monthCells(new Date(anchor.getFullYear(), m, 1)).map((d, i) => (
                     <i
                       key={i}
                       className={cn(
-                        'aspect-square',
+                        'size-2 rounded-[2px]',
                         d && (countOf(d) > 0 ? 'bg-red-soft' : 'bg-surface-muted'),
                       )}
                     />

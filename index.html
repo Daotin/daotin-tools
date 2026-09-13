@@ -6,7 +6,14 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" href="/icons/icon-192.png" />
     <meta name="theme-color" content="#f2f2fb" />
-    <title>工具</title>
+    <title>Daotin 的工具箱</title>
+    <script>
+      // 尽早套上手动选的主题，避免深色下先闪一下白屏。跟随系统时不写属性，交给 prefers-color-scheme
+      try {
+        var t = localStorage.getItem('dt:theme')
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

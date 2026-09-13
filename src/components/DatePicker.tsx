@@ -174,8 +174,8 @@ export function DatePicker({
           if (e.target === ref.current) setOpen(false)
         }}
         className={cn(
-          'sheet mt-auto mb-0 w-full max-w-full rounded-t-lg bg-surface-raised p-5 text-foreground shadow-raised outline-none backdrop:bg-black/25',
-          'lg:m-auto lg:w-90 lg:rounded-lg',
+          'sheet w-full max-w-full rounded-t-lg bg-surface-raised p-5 text-foreground shadow-raised outline-none backdrop:bg-black/25',
+          'lg:w-90 lg:rounded-lg',
         )}
       >
         <div className="flex items-center justify-center gap-2">

@@ -1,11 +1,12 @@
-import { ToolCardOpen } from '@/components/ToolCard'
+import { ToolCardOpen, ToolCardSkeleton } from '@/components/ToolCard'
 import { useOil } from './data'
 
 /** 首页卡片摘要：92 号价格 + 最近 6 条历史的迷你折线。数据没有或加载失败时显示"打开"。
  * 说明行右边留给迷你折线，390px 宽下只剩 69px，写成 "92# · 8/31" 才不折行（省份在工具页里写全）。 */
 export function OilSummary() {
-  const { latest, history } = useOil()
-  if (!latest) return <ToolCardOpen />
+  const { latest, history, error } = useOil()
+  // 没有 latest 又没报错 = 还在请求，先占位；请求失败才是空态（"打开"）
+  if (!latest) return error ? <ToolCardOpen /> : <ToolCardSkeleton />
 
   const points = (history ?? []).slice(-6)
   const prices = points.map((p) => p.p92)

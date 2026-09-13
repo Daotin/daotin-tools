@@ -2,7 +2,6 @@ import { Pencil } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router'
 import { InlineError } from '@/components/InlineError'
 import { PageSkeleton } from '@/components/Skeleton'
-import { SiteAction, roundButton } from '@/components/AppShell'
 import type { CountdownEvent } from '@/lib/database.types'
 import { HeroCard } from '@/components/HeroCard'
 import { useEvents } from './data'
@@ -16,18 +15,6 @@ export function CountdownDetail() {
 
   return (
     <>
-      {event && (
-        <SiteAction>
-          <Link
-            to={{ pathname: `/countdown/${event.id}/edit`, search }}
-            viewTransition
-            aria-label="编辑"
-            className={roundButton}
-          >
-            <Pencil />
-          </Link>
-        </SiteAction>
-      )}
       <h1 className="mt-1 mb-4 font-rounded text-title">倒数日</h1>
       <InlineError message={error} onRetry={() => void reload()} />
       {!events ? (
@@ -35,13 +22,13 @@ export function CountdownDetail() {
       ) : !event ? (
         <p className="text-body-sm text-foreground-secondary">这条记录不存在</p>
       ) : (
-        <Detail event={event} />
+        <Detail event={event} search={search} />
       )}
     </>
   )
 }
 
-function Detail({ event }: { event: CountdownEvent }) {
+function Detail({ event, search }: { event: CountdownEvent; search: string }) {
   const { date, days } = nextOccurrence(event)
   const unit = days === 0 ? '' : days > 0 ? '天后' : '天前'
 
@@ -68,6 +55,15 @@ function Detail({ event }: { event: CountdownEvent }) {
           重复：{REPEAT_LABEL[event.repeat]}
         </div>
         <div className="text-body-sm text-foreground-secondary">分类：{event.category}</div>
+        {/* 卡底本身就是 --tool-soft，secondary 胶囊在上面看不见，底改成白卡色、字仍是 --tool-solid */}
+        <Link
+          to={{ pathname: `/countdown/${event.id}/edit`, search }}
+          viewTransition
+          className="mt-4 inline-flex h-10 items-center gap-2 rounded-pill bg-surface px-5 font-rounded text-body-sm font-semibold text-tool-solid transition-transform active:scale-[0.97]"
+        >
+          <Pencil className="size-4" />
+          编辑
+        </Link>
       </HeroCard>
       {event.note && (
         <div className="mt-3 rounded-md bg-surface p-5">

@@ -52,7 +52,7 @@ export function Login() {
         className="w-full max-w-[360px] rounded-md bg-surface p-6"
       >
         <IconBadge icon={LayoutGrid} size={56} color="blue" />
-        <h1 className="mt-4 font-rounded text-title">工具</h1>
+        <h1 className="mt-4 font-rounded text-title">Daotin 的工具箱</h1>
         <p className="mt-1 text-body-sm text-foreground-secondary">输入账号密码登录</p>
 
         <label className="mt-5 block text-caption text-foreground-secondary" htmlFor="email">

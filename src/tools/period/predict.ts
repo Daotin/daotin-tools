@@ -1,5 +1,5 @@
 import { differenceInCalendarDays } from 'date-fns'
-import { formatMonthDay, parseDate } from '@/lib/date'
+import { formatMonthDay, parseDate, toDateString } from '@/lib/date'
 import type { Period } from '@/lib/database.types'
 
 export { formatMonthDay, parseDate, toDateString } from '@/lib/date'
@@ -17,10 +17,12 @@ export function startOfDay(date: Date): Date {
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
 
+/** 偶数个取中间两数的平均，四舍五入。 */
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b)
   const mid = sorted.length >> 1
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+  const value = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
+  return Math.round(value)
 }
 
 /** 线性加权平均：传入的数组按旧→新排列，最旧权重 1，最新权重 n，四舍五入。 */
@@ -30,13 +32,27 @@ function weightedAverage(values: number[]): number {
   return Math.round(sum / weight)
 }
 
+/** 周期落在 15–90 天才参与估算，之外的保留记录但不算。 */
+const inRange = (length: number) => length >= 15 && length <= 90
+
 /** 历史列表里的一条：`length` 是与上一条开始日之差，首条为 null。 */
 export type Cycle = {
   period: Period
   /** 天数，如 28；首条没有上一条，为 null */
   length: number | null
-  /** 这个周期是否参与了预测（首条 length 为 null 时无意义） */
+  /** 这个周期是否在 15–90 内、参与了估算（length 为 null 时恒为 false） */
   counted: boolean
+}
+
+export type Backtest = {
+  /** 有效回测次数 */
+  count: number
+  /** 平均绝对误差，天（未取整，展示时保留一位小数） */
+  mae: number
+  /** 绝对误差的 90% 分位数，向上取整，天 */
+  p90: number
+  /** 每次的带符号误差（预测 − 实际），按时间先后 */
+  errors: number[]
 }
 
 export type Prediction = {
@@ -47,82 +63,130 @@ export type Prediction = {
   fertileStart: Date
   fertileEnd: Date
   irregular: boolean
-  confidence: 'high' | 'medium' | 'low' | 'default'
+  /** 周期长度是怎么算出来的：加权平均 / 中位数 / 没有可用周期时的默认 28 天 */
+  cycleMethod: 'weighted' | 'median' | 'default'
+  /** 一次回测结果都没有时为 null；count < 3 时页面不展示误差和范围 */
+  backtest: Backtest | null
   /** 按开始日倒序，和历史列表顺序一致 */
   cycles: Cycle[]
 }
 
-/**
- * 按 design.md"经期 · 预测"一节实现。没有任何记录时返回 null（页面显示首次引导）。
- * 取样 → 剔除 → 加权平均 → 排卵期 → 不规律判定 → 可信度。
- * 结果只由历史记录决定，与"今天"无关；今天只在 statusText 里用来选文案。
- */
-export function predict(periods: Period[]): Prediction | null {
-  const sorted = [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date))
-  if (sorted.length === 0) return null
+/** 按开始日升序、且开始日不晚于今天的记录；结束日晚于今天的记录只丢掉结束日。 */
+function validPeriods(periods: Period[], todayStr: string): Period[] {
+  return [...periods]
+    .filter((p) => p.start_date <= todayStr)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))
+}
 
-  const starts = sorted.map((p) => parseDate(p.start_date))
-  // allCycles[i] 是 sorted[i + 1] 与前一条开始日之差
+/** 预测主体，不含回测（回测会反过来调它，放一起会无限递归）。 */
+function core(periods: Period[], today: Date): Omit<Prediction, 'backtest'> | null {
+  const todayStr = toDateString(startOfDay(today))
+  const valid = validPeriods(periods, todayStr)
+  if (valid.length === 0) return null
+
+  const starts = valid.map((p) => parseDate(p.start_date))
+  // allCycles[i] 是 valid[i + 1] 与前一条开始日之差
   const allCycles = starts
     .slice(1)
     .map((date, i) => differenceInCalendarDays(date, starts[i]))
 
-  // 取样：最近最多 6 个
-  const offset = Math.max(0, allCycles.length - 6)
-  const recent = allCycles.slice(offset)
+  // 先过滤 15–90，再取最近最多 6 个
+  const recent = allCycles.filter(inRange).slice(-6)
+  const spread = recent.length > 0 ? Math.max(...recent) - Math.min(...recent) : 0
+  const regular = recent.length >= 3 && spread <= 7
+  const irregular = recent.length >= 3 && spread > 7
 
-  // 剔除：先丢 15–90 之外的（录错日期的量级），剩余 ≥3 再丢与中位数相差 >10 的
-  let keptIndexes = recent
-    .map((_, i) => i)
-    .filter((i) => recent[i] >= 15 && recent[i] <= 90)
-  if (keptIndexes.length >= 3) {
-    const mid = median(keptIndexes.map((i) => recent[i]))
-    keptIndexes = keptIndexes.filter((i) => Math.abs(recent[i] - mid) <= 10)
-  }
-  const kept = keptIndexes.map((i) => recent[i])
+  const cycleMethod = recent.length === 0 ? 'default' : regular ? 'weighted' : 'median'
+  const cycleLength =
+    cycleMethod === 'default' ? 28 : cycleMethod === 'weighted' ? weightedAverage(recent) : median(recent)
 
-  const cycleLength = kept.length > 0 ? clamp(weightedAverage(kept), 15, 90) : 28
-
-  // 经期长度：已填结束日的最近 6 条，天数 = end − start + 1
-  const lengths = sorted
-    .filter((p) => p.end_date)
+  // 经期长度：已填结束日（且结束日不晚于今天）的最近 6 条，天数 = end − start + 1
+  const lengths = valid
+    .filter((p) => p.end_date && p.end_date <= todayStr)
     .slice(-6)
     .map((p) => differenceInCalendarDays(parseDate(p.end_date!), parseDate(p.start_date)) + 1)
   const periodLength = lengths.length > 0 ? clamp(weightedAverage(lengths), 2, 10) : 5
 
-  // 不规律判定用剔除前的 recent：至少 3 个且极差超过 7 天
-  const irregular =
-    recent.length >= 3 && Math.max(...recent) - Math.min(...recent) > 7
-
-  const confidence: Prediction['confidence'] =
-    kept.length >= 3 ? (irregular ? 'medium' : 'high') : kept.length >= 1 ? 'low' : 'default'
-  // 非高可信度时排卵期两端各多放 3 天
-  const widen = confidence === 'high' ? 0 : 3
-
   const nextStart = addDays(starts[starts.length - 1], cycleLength)
+  // 排卵期固定：排卵日前 5 天到后 1 天，不随样本多少放宽
   const ovulation = addDays(nextStart, -14)
 
-  const keptSet = new Set(keptIndexes.map((i) => i + offset))
-  const cycles: Cycle[] = sorted
-    .map((period, i) => ({
-      period,
-      length: i === 0 ? null : allCycles[i - 1],
-      counted: i > 0 && keptSet.has(i - 1),
-    }))
-    .reverse()
+  const counted: Cycle[] = valid.map((period, i) => ({
+    period,
+    length: i === 0 ? null : allCycles[i - 1],
+    counted: i > 0 && inRange(allCycles[i - 1]),
+  }))
+  // 开始日在未来的记录不参与任何计算，但仍要出现在历史里，否则用户没法删掉它
+  const futures: Cycle[] = [...periods]
+    .filter((p) => p.start_date > todayStr)
+    .sort((a, b) => b.start_date.localeCompare(a.start_date))
+    .map((period) => ({ period, length: null, counted: false }))
 
   return {
     cycleLength,
     periodLength,
     nextStart,
     ovulation,
-    fertileStart: addDays(ovulation, -5 - widen),
-    fertileEnd: addDays(ovulation, 1 + widen),
+    fertileStart: addDays(ovulation, -5),
+    fertileEnd: addDays(ovulation, 1),
     irregular,
-    confidence,
-    cycles,
+    cycleMethod,
+    cycles: [...futures, ...counted.reverse()],
   }
 }
+
+/**
+ * 回测：对每一条有前序周期的记录（从第 3 条起），只用它之前的记录、
+ * 以它的开始日当"今天"，调用与正式预测同一个函数，误差 = 预测 − 实际（天）。
+ * 不因为误差大或周期长而事后剔除任何一次结果。一次都算不出时返回 null。
+ */
+export function backtest(
+  periods: Period[],
+  predictFn: (list: Period[], today: Date) => { nextStart: Date } | null = core,
+): Backtest | null {
+  const sorted = [...periods].sort((a, b) => a.start_date.localeCompare(b.start_date))
+  const errors: number[] = []
+  for (let k = 2; k < sorted.length; k++) {
+    const actual = parseDate(sorted[k].start_date)
+    const result = predictFn(sorted.slice(0, k), actual)
+    if (result) errors.push(differenceInCalendarDays(result.nextStart, actual))
+  }
+  if (errors.length === 0) return null
+
+  const abs = errors.map(Math.abs)
+  const sortedAbs = [...abs].sort((a, b) => a - b)
+  return {
+    count: errors.length,
+    mae: abs.reduce((a, b) => a + b, 0) / abs.length,
+    // 90% 分位数：排序后位置 ceil(0.9 × N)（1 起），再向上取整
+    p90: Math.ceil(sortedAbs[Math.ceil(0.9 * sortedAbs.length) - 1]),
+    errors,
+  }
+}
+
+/**
+ * 没有任何记录时返回 null（页面显示首次引导）。
+ * `today` 只影响"哪些记录有效"，回测时会被换成历史上的某一天。
+ */
+export function predict(periods: Period[], today: Date = new Date()): Prediction | null {
+  const base = core(periods, today)
+  if (!base) return null
+  const todayStr = toDateString(startOfDay(today))
+  return { ...base, backtest: backtest(validPeriods(periods, todayStr)) }
+}
+
+/** Hero 里数字下面那行：回测不足 3 次只说记录还少，够了才给平均误差和参考范围。 */
+export function backtestText(prediction: Prediction): string {
+  const bt = prediction.backtest
+  if (!bt || bt.count < 3) return '记录还少，暂无误差参考'
+  const few = bt.count < 6 ? '（样本较少）' : ''
+  const from = formatMonthDay(addDays(prediction.nextStart, -bt.p90))
+  const to = formatMonthDay(addDays(prediction.nextStart, bt.p90))
+  return `按当前算法回测，过去 ${bt.count} 次平均相差 ${bt.mae.toFixed(1)} 天${few} · 历史误差参考范围 ${from} – ${to}`
+}
+
+/** 排卵相关文案旁的固定提示。 */
+export const OVULATION_CAPTION = '按日历估算，不能作为避孕依据'
 
 /** 一条记录在日历上覆盖的最后一天：填了结束日就用它，没填按预测经期长度算。 */
 export function periodEnd(period: Period, periodLength: number): Date {
