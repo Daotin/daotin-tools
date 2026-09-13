@@ -1,0 +1,26 @@
+import { ToolCardOpen } from '@/components/ToolCard'
+import { useEvents } from './data'
+import { sortEvents } from './rules'
+
+/** 首页卡片摘要：最近一条的天数（排序后的第一条）。没有事件时按 ui-spec 第 2 节显示"打开"。 */
+export function CountdownSummary() {
+  const { events } = useEvents()
+  const first = events && events.length > 0 ? sortEvents(events)[0] : null
+  if (!first) return <ToolCardOpen />
+
+  const { days } = first.occurrence
+  return (
+    <>
+      <div className="mt-1 flex items-baseline gap-1">
+        <span className="font-rounded text-stat font-bold">
+          {days === 0 ? '今天' : Math.abs(days)}
+        </span>
+        {days !== 0 && <span className="text-caption text-foreground-secondary">天</span>}
+      </div>
+      <div className="mt-0.5 text-caption text-foreground-secondary">
+        {first.event.title}
+        {days === 0 ? '' : days > 0 ? ' · 还有' : ' · 已经'}
+      </div>
+    </>
+  )
+}

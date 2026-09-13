@@ -25,6 +25,8 @@ export type Tool = {
   path: string
   icon: LucideIcon
   color: ToolColor
+  /** 有设置页时，工具页站点栏右侧显示齿轮，进 `${path}/settings` */
+  hasSettings?: boolean
   /** 可选：首页卡片上的核心数字与说明 */
   Summary?: React.FC
   /** 工具自己的子路由，挂在 path 下 */

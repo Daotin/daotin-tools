@@ -1,4 +1,6 @@
-import { ChevronLeft, LayoutGrid, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { ChevronLeft, LayoutGrid, Settings, User } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { cn } from 'cn'
 import { IconBadge } from './IconBadge'
@@ -7,8 +9,8 @@ import { tools } from '@/tools'
 
 const SITE_NAME = '工具'
 
-/** 站点栏的 40px 白底圆形 ghost 按钮样式。 */
-const roundButton =
+/** 站点栏的 40px 白底圆形 ghost 按钮样式。有色按钮在此基础上覆盖 bg / text。 */
+export const roundButton =
   'flex size-10 shrink-0 items-center justify-center rounded-pill bg-surface text-foreground transition-transform active:scale-[0.97] [&_svg]:size-5'
 
 /** 电脑端左侧导航：240px 固定，与页面底同色无边框。 */
@@ -72,10 +74,25 @@ function NavItem({
   )
 }
 
+const SITE_ACTION_ID = 'site-action'
+
+/**
+ * 工具页把自己的站点栏右侧按钮塞进站点栏（倒数日的 + / ✓ / 编辑）。
+ * 用 portal 而不是把按钮传给 AppShell，是因为按钮的可用状态由页面自己的表单决定。
+ */
+export function SiteAction({ children }: { children: React.ReactNode }) {
+  const [host, setHost] = useState<HTMLElement | null>(null)
+  useEffect(() => setHost(document.getElementById(SITE_ACTION_ID)), [])
+  return host ? createPortal(children, host) : null
+}
+
 export function AppShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const isHome = pathname === '/'
+  // 工具页右侧换成该工具的设置齿轮；设置页本身不再显示
+  const tool = tools.find((t) => pathname.startsWith(t.path))
+  const settingsPath = tool?.hasSettings ? `${tool.path}/settings` : null
 
   return (
     <div className="flex min-h-dvh">
@@ -91,20 +108,39 @@ export function AppShell() {
               type="button"
               aria-label="返回"
               onClick={() => navigate(-1)}
-              className={roundButton}
+              className={cn(roundButton, 'lg:hidden')}
             >
               <ChevronLeft />
             </button>
           )}
-          {/* 右操作位：手机上是账号，电脑端账号在左侧导航 */}
-          <Link to="/account" aria-label="账号" className={cn(roundButton, 'lg:hidden')}>
-            <User />
-          </Link>
+          {/* 右操作位：工具页是设置齿轮，其余页面手机上是账号（电脑端账号在左侧导航） */}
+          {settingsPath && pathname !== settingsPath ? (
+            <Link to={settingsPath} aria-label="设置" className={cn(roundButton, 'ml-auto')}>
+              <Settings />
+            </Link>
+          ) : tool ? (
+            /* 没有设置齿轮的工具，把右操作位让给页面自己（见 SiteAction）。
+               portal 的内容挂在站点栏里，拿不到 ToolColorProvider 的变量，这里补一份。 */
+            <div
+              id={SITE_ACTION_ID}
+              className="ml-auto flex"
+              style={
+                {
+                  '--tool-solid': `var(--${tool.color}-solid)`,
+                  '--tool-soft': `var(--${tool.color}-soft)`,
+                } as React.CSSProperties
+              }
+            />
+          ) : (
+            <Link to="/account" aria-label="账号" className={cn(roundButton, 'ml-auto lg:hidden')}>
+              <User />
+            </Link>
+          )}
         </header>
-        <main className="flex-1 px-4 pb-8 lg:px-8 lg:pb-12">
+        <main className="flex flex-1 flex-col px-4 pb-8 lg:px-8 lg:pb-12">
           <div
             className={cn(
-              'mx-auto',
+              'mx-auto flex w-full flex-1 flex-col',
               isHome ? 'max-w-[960px]' : 'max-w-[720px]',
             )}
           >
