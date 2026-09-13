@@ -97,9 +97,9 @@ function Day({
           mark.recorded && 'bg-red-solid text-white',
           mark.soft && 'bg-red-soft text-red-solid',
           mark.dashed && 'border border-dashed border-red-solid',
-          mark.fertile && 'bg-orange-soft text-orange-solid',
+          mark.fertile && 'bg-teal-soft text-teal-solid',
           // 排卵日圆环；今天的圆环叠在最外，两者只显示一个
-          mark.ovulation && !today && 'ring-2 ring-orange-solid',
+          mark.ovulation && !today && 'ring-2 ring-teal-solid',
           today && 'ring-2 ring-tool-solid',
         )}
       >
@@ -187,7 +187,7 @@ export function PeriodCalendar({
       <div className="mt-3 flex flex-wrap gap-3 text-caption text-foreground-secondary">
         <Legend color="var(--red-solid)" text="经期" />
         <Legend color="var(--red-soft)" text="预测经期" />
-        <Legend color="var(--orange-soft)" text="排卵期" />
+        <Legend color="var(--teal-soft)" text="排卵期" />
         <Legend color="var(--tool-soft)" ring="var(--tool-solid)" text="今天" />
       </div>
     </div>
