@@ -1,0 +1,33 @@
+name: 抓油价
+
+on:
+  # UTC 0 点 = 北京时间 08:00。GitHub 高峰期可能延迟几十分钟，对 10 个工作日才调一次的数据无影响。
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: node scripts/fetch-oil-price.mjs
+      - name: 有变化才提交
+        run: |
+          if git diff --quiet -- public/data/oil; then
+            echo "油价数据无变化，不提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data/oil
+          git commit -m "chore(oil): 更新油价 $(TZ=Asia/Shanghai date +%F)"
+          git push

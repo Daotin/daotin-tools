@@ -1,7 +1,8 @@
 import { createElement } from 'react'
 import { Fuel } from 'lucide-react'
-import { ToolPlaceholder } from '@/components/ToolPlaceholder'
 import type { Tool } from '@/tools'
+import { OilPage } from './OilPage'
+import { OilSummary } from './OilSummary'
 
 export const oil: Tool = {
   id: 'oil',
@@ -9,7 +10,7 @@ export const oil: Tool = {
   path: '/oil',
   icon: Fuel,
   color: 'blue',
-  routes: [
-    { index: true, element: createElement(ToolPlaceholder, { name: '油费', icon: Fuel }) },
-  ],
+  hasSettings: false,
+  Summary: OilSummary,
+  routes: [{ index: true, element: createElement(OilPage) }],
 }
