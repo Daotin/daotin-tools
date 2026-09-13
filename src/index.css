@@ -314,6 +314,18 @@
   }
 }
 
+/* 弹层（底部抽屉 / 对话框）进场：200ms 淡入 + 上移 */
+.sheet[open] {
+  animation: sheet-in 200ms var(--ease-quint) both;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
 @keyframes page-out {
   to {
     opacity: 0;

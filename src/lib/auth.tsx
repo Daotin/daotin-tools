@@ -34,6 +34,10 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { session, loading } = useSession()
   const location = useLocation()
 
+  // 仅开发环境：?mock=1 用假数据看版式，不需要登录。字面量 false 在生产构建里是死代码。
+  if (import.meta.env.DEV && new URLSearchParams(location.search).get('mock') === '1') {
+    return <>{children}</>
+  }
   if (loading) return null
   if (!session) {
     const from = location.pathname + location.search

@@ -1,6 +1,7 @@
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router'
 import { AppShell } from '@/components/AppShell'
 import { ToolColorProvider } from '@/components/ToolColorProvider'
+import { Toaster } from '@/components/Toast'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { RequireAuth, SessionProvider } from '@/lib/auth'
 import { Account, AccountPassword, AccountRestore } from '@/pages/Account'
@@ -41,6 +42,7 @@ export function App() {
     <SessionProvider>
       <RouterProvider router={router} />
       <UpdatePrompt />
+      <Toaster />
     </SessionProvider>
   )
 }

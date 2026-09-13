@@ -42,6 +42,7 @@ export type Database = {
         Row: QuitItem
         Insert: Insert<{ name: string; start_at: string }>
         Update: Partial<QuitItem>
+        Relationships: []
       }
       quit_relapses: {
         Row: QuitRelapse
@@ -52,6 +53,7 @@ export type Database = {
           legacy_id?: string | null
         }>
         Update: Partial<QuitRelapse>
+        Relationships: []
       }
       countdown_events: {
         Row: CountdownEvent
@@ -65,11 +67,13 @@ export type Database = {
           note?: string | null
         }>
         Update: Partial<CountdownEvent>
+        Relationships: []
       }
       periods: {
         Row: Period
         Insert: Insert<{ start_date: string; end_date?: string | null }>
         Update: Partial<Period>
+        Relationships: []
       }
     }
     Views: Record<string, never>
