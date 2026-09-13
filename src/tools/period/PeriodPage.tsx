@@ -216,6 +216,25 @@ export function PeriodPage() {
               <div className="mt-1 text-body-sm text-foreground-secondary">
                 这天属于记录：{rangeText(owner)}
               </div>
+              {/* 结束日未填的记录：按预测长度画出的区间里点某天，最常见的意图就是"今天结束了" */}
+              {!owner.end_date && selected > parseDate(owner.start_date) && (
+                <Button
+                  className="mt-5 w-full bg-tool-solid text-white"
+                  disabled={busy}
+                  onClick={async () => {
+                    await write(() =>
+                      updatePeriod(owner.id, {
+                        start_date: owner.start_date,
+                        end_date: toDateString(selected),
+                      }),
+                    )
+                    setSelected(null)
+                    toast('已记录')
+                  }}
+                >
+                  标记为经期结束
+                </Button>
+              )}
               {/* 不用 variant="secondary"：--secondary 在 :root 上就把 --tool-soft 代入成默认色了 */}
               <Button
                 className="mt-5 w-full bg-tool-soft text-tool-solid"

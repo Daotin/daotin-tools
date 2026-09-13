@@ -16,7 +16,9 @@ import iconv from 'iconv-lite'
 import { appendHistory, beijingDate, parseOilPage, validate } from './oil-parse.mjs'
 
 // 桌面页会 302 到移动页；部分网络下 www 解析到打不通的 IP，所以 www 失败就直接试 m.
-const URLS = ['http://www.qiyoujiage.com/hubei.shtml', 'http://m.qiyoujiage.com/hubei.shtml']
+// 先抓移动版：结构是 <dt>湖北92号汽油</dt><dd>8.31(元)</dd>，UTF-8，解析稳定；
+// 桌面版在 GitHub Actions 上能连通但返回的页面解析不出价格（2026-09-13 运行 #1 失败），只作兜底。
+const URLS = ['http://m.qiyoujiage.com/hubei.shtml', 'http://www.qiyoujiage.com/hubei.shtml']
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
