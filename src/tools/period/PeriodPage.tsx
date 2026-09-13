@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { InlineError } from '@/components/InlineError'
+import { PageSkeleton } from '@/components/Skeleton'
 import { differenceInCalendarDays } from 'date-fns'
 import { Droplet } from 'lucide-react'
 import { HeroCard } from '@/components/HeroCard'
@@ -128,12 +130,19 @@ export function PeriodPage() {
   const list = periods ?? []
   const prediction = predict(list)
 
-  /** 假数据模式下不写数据库，只走一遍 UI。 */
-  async function write(action: () => Promise<void>) {
+  /**
+   * 假数据模式下不写数据库，只走一遍 UI。
+   * 失败时 toast 并返回 false，调用方据此不关抽屉、不清状态。
+   */
+  async function write(action: () => Promise<void>): Promise<boolean> {
     setBusy(true)
     try {
       if (!mock) await action()
       await reload()
+      return true
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '保存失败，请重试')
+      return false
     } finally {
       setBusy(false)
     }
@@ -159,7 +168,7 @@ export function PeriodPage() {
       toast(message)
       return
     }
-    await write(() => createPeriod(input))
+    if (!(await write(() => createPeriod(input)))) return
     setSelected(null)
     toast('已记录')
   }
@@ -167,11 +176,11 @@ export function PeriodPage() {
   return (
     <>
       <h1 className="mt-1 mb-4 font-rounded text-title">经期</h1>
-      {error && <p className="text-caption text-red-solid">{error}</p>}
+      <InlineError message={error} onRetry={() => void reload()} />
 
       {!periods ? (
         /* 骨架屏：形状对应 Hero Card */
-        <div className="h-62 animate-pulse rounded-md bg-tool-soft" />
+        <PageSkeleton />
       ) : (
         <div className="flex flex-col xl:flex-row xl:items-start xl:gap-6">
           <div className="flex flex-col gap-3 xl:min-w-0 xl:flex-1">
@@ -180,8 +189,9 @@ export function PeriodPage() {
             ) : (
               <Guide
                 onSave={async (date) => {
-                  await write(() => createPeriod({ start_date: date, end_date: null }))
-                  toast('已记录')
+                  if (await write(() => createPeriod({ start_date: date, end_date: null }))) {
+                    toast('已记录')
+                  }
                 }}
               />
             )}
@@ -222,12 +232,13 @@ export function PeriodPage() {
                   className="mt-5 w-full bg-tool-solid text-white"
                   disabled={busy}
                   onClick={async () => {
-                    await write(() =>
+                    const ok = await write(() =>
                       updatePeriod(owner.id, {
                         start_date: owner.start_date,
                         end_date: toDateString(selected),
                       }),
                     )
+                    if (!ok) return
                     setSelected(null)
                     toast('已记录')
                   }}
@@ -254,7 +265,7 @@ export function PeriodPage() {
                     setConfirmDelete(true)
                     return
                   }
-                  await write(() => deletePeriod(owner.id))
+                  if (!(await write(() => deletePeriod(owner.id)))) return
                   setSelected(null)
                   toast('已删除')
                 }}
@@ -276,12 +287,13 @@ export function PeriodPage() {
                 disabled={busy || !openRecord}
                 onClick={async () => {
                   if (!openRecord) return
-                  await write(() =>
+                  const ok = await write(() =>
                     updatePeriod(openRecord.id, {
                       start_date: openRecord.start_date,
                       end_date: toDateString(selected),
                     }),
                   )
+                  if (!ok) return
                   setSelected(null)
                   toast('已记录')
                 }}

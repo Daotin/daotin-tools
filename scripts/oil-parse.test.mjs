@@ -16,13 +16,25 @@ const stale = `
 <dt>湖北 92 号汽油</dt><dd> 8.26 （元） </dd>
 `
 
+/** 同 sample，但预告的日期还没到。 */
+const future = sample.replace('9月11日', '9月26日')
+
 describe('parseOilPage', () => {
-  it('解析价格、页面日期和下次调价预告', () => {
+  it('解析价格、页面日期；预告日期早于页面日期时丢掉（网站留着旧预告）', () => {
     expect(parseOilPage(sample)).toEqual({
       p92: 8.31,
       source_date: '2026-09-12',
-      next_adjustment_text: '下次油价9月11日24时调整',
+      next_adjustment_text: null,
     })
+  })
+
+  it('预告日期还没到就保留原文', () => {
+    expect(parseOilPage(future).next_adjustment_text).toBe('下次油价9月26日24时调整')
+  })
+
+  it('跨年：页面是 12 月、预告是 1 月，算成下一年，不算过期', () => {
+    const crossYear = sample.replace('2026-09-12', '2026-12-30').replace('9月11日', '1月5日')
+    expect(parseOilPage(crossYear).next_adjustment_text).toBe('下次油价1月5日24时调整')
   })
 
   it('容忍空格和全角括号，没有预告时为 null', () => {

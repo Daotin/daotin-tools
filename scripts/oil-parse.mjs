@@ -14,6 +14,20 @@ export function toText(html) {
 }
 
 /**
+ * 预告文案里的"M月D日"配上页面日期的年份（月份比页面月份小就算下一年）。
+ * 这个日期比页面日期还早，说明网站留着上一轮的旧预告没更新，直接丢掉。
+ */
+function freshAdjustment(text, sourceDate) {
+  if (!text || !sourceDate) return text
+  const md = text.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/)
+  if (!md) return text
+  const [year, month] = sourceDate.split('-').map(Number)
+  const p = (n) => String(n).padStart(2, '0')
+  const date = `${Number(md[1]) < month ? year + 1 : year}-${p(md[1])}-${p(md[2])}`
+  return date < sourceDate ? null : text
+}
+
+/**
  * 解析 92 号汽油价格、页面日期、下次调价预告。
  * 任一项解析不到就是 null，由调用方决定是否致命（预告不致命）。
  */
@@ -22,12 +36,13 @@ export function parseOilPage(html) {
   const price = text.match(/92\s*号汽油\s*([\d.]+)\s*[（(]\s*元\s*[）)]/)
   const date = text.match(/油价\s*(\d{4})-(\d{1,2})-(\d{1,2})/)
   const next = text.match(/下次油价[^,，。；;]*?调整/)
+  const source_date = date
+    ? `${date[1]}-${String(date[2]).padStart(2, '0')}-${String(date[3]).padStart(2, '0')}`
+    : null
   return {
     p92: price ? Number(price[1]) : null,
-    source_date: date
-      ? `${date[1]}-${String(date[2]).padStart(2, '0')}-${String(date[3]).padStart(2, '0')}`
-      : null,
-    next_adjustment_text: next ? next[0].trim() : null,
+    source_date,
+    next_adjustment_text: freshAdjustment(next ? next[0].trim() : null, source_date),
   }
 }
 

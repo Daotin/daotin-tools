@@ -48,9 +48,14 @@ export function QuitTimer() {
           disabled={busy}
           onClick={async () => {
             setBusy(true)
-            if (!mock) await createItem(new Date().toISOString())
-            await reload()
-            setBusy(false)
+            try {
+              if (!mock) await createItem(new Date().toISOString())
+              await reload()
+            } catch (e) {
+              toast(e instanceof Error ? e.message : '保存失败，请重试')
+            } finally {
+              setBusy(false)
+            }
           }}
         >
           开始计时
@@ -63,6 +68,11 @@ export function QuitTimer() {
 
   async function onConfirm() {
     if (!item) return
+    // 原生 max 只挡选择器，手输仍可能超，这里再拦一次
+    if (new Date(at).getTime() > Date.now()) {
+      toast('破戒时间不能晚于现在')
+      return
+    }
     setBusy(true)
     try {
       if (!mock) await addRelapse(item, new Date(at).toISOString(), note)
@@ -70,6 +80,9 @@ export function QuitTimer() {
       setOpen(false)
       setNote('')
       toast('已记录')
+    } catch (e) {
+      // 失败时抽屉和已填内容都留着，用户可以改完再试
+      toast(e instanceof Error ? e.message : '保存失败，请重试')
     } finally {
       setBusy(false)
     }
@@ -133,6 +146,7 @@ export function QuitTimer() {
           <Input
             id="quit-at"
             type="datetime-local"
+            max={toLocalInput(new Date(now))}
             className="mt-1 border-0 bg-background font-rounded"
             value={at}
             onChange={(e) => setAt(e.target.value)}

@@ -125,6 +125,19 @@ describe('排序（验收 13）', () => {
     expect(order).toEqual(['置顶', '未来近', '未来远', '过去近', '过去远'])
   })
 
+  it('两条置顶都排在最前，组内按剩余天数升序', () => {
+    const today = new Date('2026-09-13T12:00:00')
+    const order = sortEvents(
+      [
+        make('未来近', '2026-09-15'),
+        make('置顶远', '2026-11-01', true),
+        make('置顶近', '2026-09-20', true),
+      ],
+      today,
+    ).map((e) => e.event.title)
+    expect(order).toEqual(['置顶近', '置顶远', '未来近'])
+  })
+
   it('没有置顶时第一条就是最近的未来事件', () => {
     const today = new Date('2026-09-13T12:00:00')
     const order = sortEvents([make('过去', '2026-09-10'), make('未来', '2026-09-15')], today)

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
@@ -41,8 +41,9 @@ export function PeriodEditor({
   /** 除这条以外的全部记录，用来查重叠 */
   others: Period[]
   onClose: () => void
-  onSave: (input: PeriodInput) => Promise<void>
-  onDelete: () => Promise<void>
+  /** 返回 false 表示写失败（页面已 toast），抽屉留着不关 */
+  onSave: (input: PeriodInput) => Promise<boolean>
+  onDelete: () => Promise<boolean>
 }) {
   const [start, setStart] = useState(period.start_date)
   const [end, setEnd] = useState(period.end_date ?? '')
@@ -57,7 +58,7 @@ export function PeriodEditor({
     if (error) return
     setBusy(true)
     try {
-      await onSave(input)
+      if (!(await onSave(input))) return
       toast('已保存')
       onClose()
     } finally {
@@ -68,7 +69,7 @@ export function PeriodEditor({
   async function remove() {
     setBusy(true)
     try {
-      await onDelete()
+      if (!(await onDelete())) return
       toast('已删除')
       onClose()
     } finally {

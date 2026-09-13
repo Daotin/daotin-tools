@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { format } from 'date-fns'
 import { Fuel } from 'lucide-react'
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { InlineError } from '@/components/InlineError'
+import { PageSkeleton } from '@/components/Skeleton'
 import { HeroCard } from '@/components/HeroCard'
 import { IconBadge } from '@/components/IconBadge'
 import { Button } from '@/components/ui/button'
@@ -21,7 +23,15 @@ function shortDate(date: string) {
   return `${Number(month)}/${Number(day)}`
 }
 
-function Hero({ latest, error }: { latest: OilLatest | null; error: string | null }) {
+function Hero({
+  latest,
+  error,
+  onRetry,
+}: {
+  latest: OilLatest | null
+  error: string | null
+  onRetry: () => void
+}) {
   return (
     <HeroCard>
       <IconBadge icon={Fuel} size={56} />
@@ -41,7 +51,7 @@ function Hero({ latest, error }: { latest: OilLatest | null; error: string | nul
           来源网站预告：{latest.next_adjustment_text}
         </div>
       )}
-      {error && <div className="mt-1 text-caption text-red-solid">{error}</div>}
+      <InlineError message={error ?? ''} onRetry={onRetry} />
     </HeroCard>
   )
 }
@@ -183,7 +193,8 @@ function History({ history }: { history: OilPoint[] }) {
   return (
     <div className="rounded-md bg-surface p-5">
       <div className="text-heading">价格变化</div>
-      {history.length === 0 ? (
+      {/* 只有一条时没有"变化"可言，图表只会画一个孤点，整块都不渲染 */}
+      {history.length < 2 ? (
         <div className="mt-3 text-body-sm text-foreground-secondary">还没有价格变化记录</div>
       ) : (
         <>
@@ -227,18 +238,18 @@ function History({ history }: { history: OilPoint[] }) {
 }
 
 export function OilPage() {
-  const { latest, history, error } = useOil()
+  const { latest, history, error, reload } = useOil()
 
   return (
     <>
       <h1 className="mt-1 mb-4 font-rounded text-title">油费</h1>
       {!latest && !error ? (
         /* 骨架屏：形状对应 Hero Card */
-        <div className="h-62 animate-pulse rounded-md bg-tool-soft" />
+        <PageSkeleton />
       ) : (
         <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-6">
           <div className="flex flex-col gap-3 xl:min-w-0 xl:flex-1">
-            <Hero latest={latest} error={error} />
+            <Hero latest={latest} error={error} onRetry={reload} />
             <Calculator defaultPrice={latest?.p92 ?? null} />
           </div>
           <div className="xl:w-80 xl:shrink-0">

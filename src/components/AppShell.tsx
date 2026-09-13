@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, LayoutGrid, Settings, User } from 'lucide-react'
+import { ChevronLeft, LayoutGrid, Settings, User, X } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
+import { ErrorBoundary } from './ErrorBoundary'
 import { IconBadge } from './IconBadge'
+import { PageSkeleton } from './Skeleton'
 import { useSession } from '@/lib/auth'
 import { tools } from '@/tools'
 
@@ -86,10 +88,43 @@ export function SiteAction({ children }: { children: React.ReactNode }) {
   return host ? createPortal(children, host) : null
 }
 
+/** 离线横幅：orange soft 底 orange solid 字，可关闭；回到在线自动消失。 */
+function OfflineBanner() {
+  const [offline, setOffline] = useState(() => !navigator.onLine)
+  const [closed, setClosed] = useState(false)
+
+  useEffect(() => {
+    const goOnline = () => {
+      setOffline(false)
+      // 下次再离线时横幅重新出现，不因为上次关过就永久消失
+      setClosed(false)
+    }
+    const goOffline = () => setOffline(true)
+    window.addEventListener('online', goOnline)
+    window.addEventListener('offline', goOffline)
+    return () => {
+      window.removeEventListener('online', goOnline)
+      window.removeEventListener('offline', goOffline)
+    }
+  }, [])
+
+  if (!offline || closed) return null
+  return (
+    <div className="flex items-center gap-2 bg-orange-soft px-4 py-2 text-caption text-orange-solid lg:px-8">
+      <span className="flex-1">当前离线，显示的是上次数据</span>
+      <button type="button" aria-label="关闭" onClick={() => setClosed(true)}>
+        <X className="size-4" />
+      </button>
+    </div>
+  )
+}
+
 export function AppShell() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const isHome = pathname === '/'
+  // 回上一级路径而不是 navigate(-1)：从外部链接直接进来时历史里没有上一页
+  const parent = pathname.slice(0, pathname.lastIndexOf('/')) || '/'
   // 工具页右侧换成该工具的设置齿轮；设置页本身不再显示
   const tool = tools.find((t) => pathname.startsWith(t.path))
   const settingsPath = tool?.hasSettings ? `${tool.path}/settings` : null
@@ -98,6 +133,7 @@ export function AppShell() {
     <div className="flex min-h-dvh">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
+        <OfflineBanner />
         {/* 手机顶部站点栏：56px，与页面底同色无边框 */}
         <header className="flex h-14 shrink-0 items-center justify-between px-4">
           {isHome ? (
@@ -107,7 +143,7 @@ export function AppShell() {
             <button
               type="button"
               aria-label="返回"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate({ pathname: parent, search })}
               className={cn(roundButton, 'lg:hidden')}
             >
               <ChevronLeft />
@@ -144,7 +180,12 @@ export function AppShell() {
               isHome ? 'max-w-[960px]' : 'max-w-[720px]',
             )}
           >
-            <Outlet />
+            {/* 工具页是按需加载的 chunk，加载期间用骨架屏占位，加载失败落到 ErrorBoundary */}
+            <ErrorBoundary>
+              <Suspense fallback={<PageSkeleton />}>
+                <Outlet />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </main>
       </div>

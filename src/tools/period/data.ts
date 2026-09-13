@@ -47,6 +47,7 @@ export function usePeriods() {
       setPeriods(mockPeriods(search))
       return
     }
+    setError('')
     try {
       setPeriods(await fetchPeriods())
     } catch (e) {

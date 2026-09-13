@@ -1,6 +1,9 @@
 import { differenceInCalendarDays } from 'date-fns'
 import { Lunar, LunarMonth, LunarYear, Solar } from 'lunar-typescript'
+import { parseDate } from '@/lib/date'
 import type { CountdownEvent } from '@/lib/database.types'
+
+export { formatMonthDay, parseDate, toDateString } from '@/lib/date'
 
 /** 算下一次发生日只需要这三个字段。 */
 export type EventLike = Pick<CountdownEvent, 'date' | 'is_lunar' | 'repeat'>
@@ -17,22 +20,6 @@ export const REPEAT_LABEL: Record<CountdownEvent['repeat'], string> = {
   yearly: '每年',
   monthly: '每月',
   weekly: '每周',
-}
-
-/** 'YYYY-MM-DD' → 本地零点的 Date（new Date(str) 会按 UTC 解析，差一天）。 */
-export function parseDate(value: string): Date {
-  const [y, m, d] = value.split('-').map(Number)
-  return new Date(y, m - 1, d)
-}
-
-/** Date → 'YYYY-MM-DD'，给 <input type="date"> 和数据库用。 */
-export function toDateString(date: Date): string {
-  const p = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${p(date.getMonth() + 1)}-${p(date.getDate())}`
-}
-
-export function formatMonthDay(date: Date): string {
-  return `${date.getMonth() + 1} 月 ${date.getDate()} 日`
 }
 
 export function formatFullDate(date: Date): string {
@@ -130,22 +117,19 @@ export function nextOccurrence(event: EventLike, today: Date = new Date()): Occu
 export type Entry = { event: CountdownEvent; occurrence: Occurrence }
 
 /**
- * 列表顺序：置顶的一条升为 Hero，其余按"天后"升序，"天前"排最后（离今天近的在前）。
+ * 列表顺序：置顶的全排在前，再是非置顶；两组内部都按"天后"升序，"天前"排最后
+ * （离今天近的在前）。排完第一条就是 Hero。
  */
 export function sortEvents(events: CountdownEvent[], today: Date = new Date()): Entry[] {
   const entries = events.map((event) => ({ event, occurrence: nextOccurrence(event, today) }))
   entries.sort((a, b) => {
+    const pinned = Number(b.event.pinned) - Number(a.event.pinned)
+    if (pinned !== 0) return pinned
     const past = Number(a.occurrence.days < 0) - Number(b.occurrence.days < 0)
     if (past !== 0) return past
     return a.occurrence.days < 0
       ? b.occurrence.days - a.occurrence.days
       : a.occurrence.days - b.occurrence.days
   })
-  const heroIndex = Math.max(
-    0,
-    entries.findIndex((e) => e.event.pinned),
-  )
-  return entries.length > 0
-    ? [entries[heroIndex], ...entries.filter((_, i) => i !== heroIndex)]
-    : entries
+  return entries
 }

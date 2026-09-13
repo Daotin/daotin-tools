@@ -59,6 +59,7 @@ export function useEvents() {
       setEvents(mockEvents())
       return
     }
+    setError('')
     try {
       setEvents(await fetchEvents())
     } catch (e) {

@@ -140,6 +140,8 @@ export async function restoreBackup(
     const list = rows[entry.table]
     try {
       for (let i = 0; i < list.length; i += CHUNK) {
+        // as never：entry.table 是四张表的联合类型，upsert 的行类型跟着变成四种行的交集，
+        // 任何一张表的行都不满足。这里表和行一定是配对的（rows 按表名取的），断言绕开它。
         const { error } = await supabase
           .from(entry.table)
           .upsert(list.slice(i, i + CHUNK) as never)

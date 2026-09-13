@@ -8,9 +8,11 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, CigaretteOff, Trash2 } from 'lucide-react'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
+import { formatMonthDay } from '@/lib/date'
 import { IconBadge } from '@/components/IconBadge'
 import { Segmented } from '@/components/Segmented'
+import { toast } from '@/components/Toast'
 import type { QuitRelapse } from '@/lib/database.types'
 import { useQuit } from './QuitLayout'
 import { deleteRelapse } from './data'
@@ -19,7 +21,6 @@ type View = 'week' | 'month' | 'year'
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-const monthDay = (d: Date) => `${d.getMonth() + 1} 月 ${d.getDate()} 日`
 const hhmm = (d: Date) =>
   `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 
@@ -83,7 +84,7 @@ function Day({
       </span>
       {count > 0 ? (
         count > 1 ? (
-          <span className="font-rounded text-[10px] leading-none font-semibold text-red-solid">
+          <span className="font-rounded text-caption leading-none font-semibold text-red-solid">
             {count}
           </span>
         ) : (
@@ -113,27 +114,50 @@ export function CalendarPanel() {
       view === 'week' ? addWeeks(a, step) : view === 'month' ? addMonths(a, step) : addYears(a, step),
     )
 
+  const weekEnd = endOfWeek(anchor, { weekStartsOn: 1 })
   const title =
     view === 'week'
-      ? `${monthDay(weekStart)} – ${monthDay(endOfWeek(anchor, { weekStartsOn: 1 }))}`
+      ? `${formatMonthDay(weekStart)} – ${formatMonthDay(weekEnd)}`
       : view === 'month'
         ? `${anchor.getFullYear()} 年 ${anchor.getMonth() + 1} 月`
         : `${anchor.getFullYear()} 年`
 
-  const inRange = relapses.filter((r) => {
-    const d = new Date(r.relapsed_at)
+  /** 某个时刻是否落在当前视图的区间里。 */
+  const inView = (d: Date) => {
     if (view === 'year') return d.getFullYear() === anchor.getFullYear()
     if (view === 'month')
       return d.getFullYear() === anchor.getFullYear() && d.getMonth() === anchor.getMonth()
     const start = weekStart.getTime()
     return d.getTime() >= start && d.getTime() < start + 7 * 86_400_000
-  })
-  const periodLabel = view === 'week' ? '本周' : view === 'month' ? '本月' : '本年'
+  }
+
+  const inRange = relapses.filter((r) => inView(new Date(r.relapsed_at)))
+  // 翻到别的周/月/年时不能再说"本周"，改说那一段的名字
+  const periodLabel = inView(new Date())
+    ? view === 'week'
+      ? '本周'
+      : view === 'month'
+        ? '本月'
+        : '本年'
+    : view === 'week'
+      ? `${formatMonthDay(weekStart)} – ${
+          weekEnd.getMonth() === weekStart.getMonth()
+            ? `${weekEnd.getDate()} 日`
+            : formatMonthDay(weekEnd)
+        }`
+      : view === 'month'
+        ? `${anchor.getMonth() + 1} 月`
+        : `${anchor.getFullYear()} 年`
 
   const dayRecords = selected ? (byDay.get(dayKey(selected)) ?? []) : []
 
   async function onDelete(id: string) {
-    if (!mock) await deleteRelapse(id)
+    try {
+      if (!mock) await deleteRelapse(id)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '保存失败，请重试')
+      return
+    }
     setConfirmId('')
     await reload()
   }
@@ -150,7 +174,7 @@ export function CalendarPanel() {
           >
             <ChevronLeft className="size-5" />
           </button>
-          <span className="shrink-0 font-rounded text-[17px] font-semibold whitespace-nowrap">
+          <span className="shrink-0 font-rounded text-body font-semibold whitespace-nowrap">
             {title}
           </span>
           <button
@@ -187,7 +211,7 @@ export function CalendarPanel() {
                     <i
                       key={i}
                       className={cn(
-                        'aspect-square rounded-[3px]',
+                        'aspect-square',
                         d && countOf(d) > 0 && 'bg-red-soft',
                       )}
                     />
@@ -233,7 +257,7 @@ export function CalendarPanel() {
               <div key={r.id} className="flex h-15 items-center gap-3">
                 <IconBadge icon={CigaretteOff} size={32} color="red" />
                 <div className="min-w-0 flex-1">
-                  <div className="font-rounded text-[17px] font-semibold">
+                  <div className="font-rounded text-body font-semibold">
                     {hhmm(new Date(r.relapsed_at))}
                   </div>
                   {r.note && (

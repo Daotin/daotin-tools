@@ -1,5 +1,7 @@
+import { Suspense } from 'react'
 import { Link } from 'react-router'
 import { IconBadge } from './IconBadge'
+import { Skeleton } from './Skeleton'
 import type { Tool } from '@/tools'
 
 /** 没有摘要数字时数字位置显示的"打开"。 */
@@ -29,7 +31,14 @@ export function ToolCard({ tool }: { tool: Tool }) {
       <div className="mt-2 font-rounded text-body-sm font-semibold text-foreground-secondary">
         {tool.name}
       </div>
-      {Summary ? <Summary /> : <ToolCardOpen />}
+      {Summary ? (
+        /* 摘要组件是按需加载的 chunk（农历、图表都在里面），加载期间占住数字那一行 */
+        <Suspense fallback={<Skeleton className="mt-2 h-8 w-24 bg-background" />}>
+          <Summary />
+        </Suspense>
+      ) : (
+        <ToolCardOpen />
+      )}
     </Link>
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 
 /**
  * 弹层：手机是底部抽屉（顶部圆角 + 拖动条），电脑（≥1024px）是居中对话框宽 400px。

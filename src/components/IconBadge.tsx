@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 import type { ToolColor } from '@/tools'
 
 const sizes = {
@@ -34,7 +34,7 @@ export function IconBadge({
       )}
       style={
         variant === 'solid'
-          ? { background: solid, color: '#fff' }
+          ? { background: solid, color: 'var(--primary-foreground)' }
           : { background: soft, color: solid }
       }
     >

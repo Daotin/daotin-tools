@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
 import { isMock, mockHistory, mockLatest } from './mock'
 
@@ -35,7 +35,8 @@ export function useOil() {
   const [history, setHistory] = useState<OilPoint[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  const reload = useCallback(() => {
+    setError(null)
     if (import.meta.env.DEV && isMock(search)) {
       const mock = mockLatest(search)
       setLatest(mock)
@@ -51,5 +52,9 @@ export function useOil() {
       .catch(() => setHistory([]))
   }, [search])
 
-  return { latest, history, error }
+  useEffect(() => {
+    reload()
+  }, [reload])
+
+  return { latest, history, error, reload }
 }

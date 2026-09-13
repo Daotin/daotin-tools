@@ -1,12 +1,15 @@
-import { createElement } from 'react'
+import { createElement, lazy } from 'react'
 import { CigaretteOff } from 'lucide-react'
 import type { Tool } from '@/tools'
-import { CalendarPanel } from './QuitCalendar'
-import { QuitLayout } from './QuitLayout'
-import { QuitSettings } from './QuitSettings'
-import { QuitStats } from './QuitStats'
-import { QuitSummary } from './QuitSummary'
-import { QuitTimer } from './QuitTimer'
+
+// 全部动态 import：戒烟统计用的 recharts 只进这个工具的 chunk，不进主包。
+// 注册表本身（图标、颜色、路径）留在主包里，首页和侧边导航要用。
+const QuitLayout = lazy(() => import('./QuitLayout').then((m) => ({ default: m.QuitLayout })))
+const QuitTimer = lazy(() => import('./QuitTimer').then((m) => ({ default: m.QuitTimer })))
+const CalendarPanel = lazy(() => import('./QuitCalendar').then((m) => ({ default: m.CalendarPanel })))
+const QuitStats = lazy(() => import('./QuitStats').then((m) => ({ default: m.QuitStats })))
+const QuitSettings = lazy(() => import('./QuitSettings').then((m) => ({ default: m.QuitSettings })))
+const QuitSummary = lazy(() => import('./QuitSummary').then((m) => ({ default: m.QuitSummary })))
 
 export const quit: Tool = {
   id: 'quit',

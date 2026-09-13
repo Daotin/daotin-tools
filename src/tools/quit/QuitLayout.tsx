@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Outlet, useLocation, useNavigate, useOutletContext } from 'react-router'
+import { InlineError } from '@/components/InlineError'
 import { Segmented } from '@/components/Segmented'
+import { PageSkeleton } from '@/components/Skeleton'
 import type { QuitItem, QuitRelapse } from '@/lib/database.types'
 import { fetchQuit } from './data'
 import { isMock, mockData } from './mock'
@@ -36,6 +38,7 @@ export function QuitLayout() {
       setData(mockData())
       return
     }
+    setError('')
     try {
       setData(await fetchQuit())
     } catch (e) {
@@ -58,12 +61,11 @@ export function QuitLayout() {
           className="lg:w-70"
         />
       </div>
-      {error && <p className="text-caption text-red-solid">{error}</p>}
+      <InlineError message={error} onRetry={() => void reload()} />
       {data ? (
         <Outlet context={{ ...data, mock, reload } satisfies QuitContext} />
       ) : (
-        /* 骨架屏：形状对应即将出现的 Hero Card */
-        <div className="h-62 animate-pulse rounded-md bg-tool-soft" />
+        <PageSkeleton />
       )}
     </>
   )

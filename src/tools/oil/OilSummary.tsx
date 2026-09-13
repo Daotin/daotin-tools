@@ -1,7 +1,8 @@
 import { ToolCardOpen } from '@/components/ToolCard'
 import { useOil } from './data'
 
-/** 首页卡片摘要：92 号价格 + 最近 6 条历史的迷你折线。数据没有或加载失败时显示"打开"。 */
+/** 首页卡片摘要：92 号价格 + 最近 6 条历史的迷你折线。数据没有或加载失败时显示"打开"。
+ * 说明行右边留给迷你折线，390px 宽下只剩 69px，写成 "92# · 8/31" 才不折行（省份在工具页里写全）。 */
 export function OilSummary() {
   const { latest, history } = useOil()
   if (!latest) return <ToolCardOpen />
@@ -20,7 +21,7 @@ export function OilSummary() {
       </div>
       {/* 右侧留出迷你折线的位置 */}
       <div className="mt-0.5 pr-16 text-caption text-foreground-secondary">
-        湖北 92# · {Number(month)} 月 {Number(day)} 日
+        92# · {Number(month)}/{Number(day)}
       </div>
       {points.length > 1 && (
         <svg width="60" height="28" viewBox="0 0 60 28" aria-hidden className="absolute right-5 bottom-5">

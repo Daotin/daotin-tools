@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 import { SiteAction, roundButton } from '@/components/AppShell'
 import { Segmented } from '@/components/Segmented'
 import { toast } from '@/components/Toast'
@@ -105,6 +105,9 @@ export function CountdownForm() {
       }
       toast('已保存')
       back()
+    } catch (e) {
+      // 失败时留在表单页，用户填的内容还在
+      toast(e instanceof Error ? e.message : '保存失败，请重试')
     } finally {
       setBusy(false)
     }
@@ -116,6 +119,8 @@ export function CountdownForm() {
       if (!mock && id) await deleteEvent(id)
       toast('已删除')
       back()
+    } catch (e) {
+      toast(e instanceof Error ? e.message : '保存失败，请重试')
     } finally {
       setBusy(false)
     }

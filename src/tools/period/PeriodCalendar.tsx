@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 import type { Period } from '@/lib/database.types'
 import type { Prediction } from './predict'
 import { addDays, parseDate, periodEnd, startOfDay } from './predict'
@@ -113,7 +113,7 @@ function Legend({ color, ring, text }: { color: string; ring?: string; text: str
   return (
     <span className="flex items-center gap-1">
       <i
-        className="size-2.5 rounded-[3px]"
+        className="size-2.5"
         style={{ background: color, boxShadow: ring && `inset 0 0 0 2px ${ring}` }}
       />
       {text}
@@ -150,7 +150,7 @@ export function PeriodCalendar({
         >
           <ChevronLeft className="size-5" />
         </button>
-        <span className="shrink-0 font-rounded text-[17px] font-semibold whitespace-nowrap">
+        <span className="shrink-0 font-rounded text-body font-semibold whitespace-nowrap">
           {anchor.getFullYear()} 年 {anchor.getMonth() + 1} 月
         </span>
         <button

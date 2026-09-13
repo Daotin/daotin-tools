@@ -1,5 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router'
+import { InlineError } from '@/components/InlineError'
+import { PageSkeleton } from '@/components/Skeleton'
 import { SiteAction, roundButton } from '@/components/AppShell'
 import type { CountdownEvent } from '@/lib/database.types'
 import { HeroCard } from '@/components/HeroCard'
@@ -9,7 +11,7 @@ import { REPEAT_LABEL, formatFullDate, lunarText, nextOccurrence } from './rules
 export function CountdownDetail() {
   const { id } = useParams()
   const { search } = useLocation()
-  const { events, error } = useEvents()
+  const { events, error, reload } = useEvents()
   const event = events?.find((e) => e.id === id)
 
   return (
@@ -27,9 +29,9 @@ export function CountdownDetail() {
         </SiteAction>
       )}
       <h1 className="mt-1 mb-4 font-rounded text-title">倒数日</h1>
-      {error && <p className="text-caption text-red-solid">{error}</p>}
+      <InlineError message={error} onRetry={() => void reload()} />
       {!events ? (
-        <div className="h-52 animate-pulse rounded-md bg-tool-soft" />
+        <PageSkeleton />
       ) : !event ? (
         <p className="text-body-sm text-foreground-secondary">这条记录不存在</p>
       ) : (

@@ -1,4 +1,4 @@
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 
 /** 分段切换：整体白底胶囊，选中块 --tool-soft 底 --tool-solid 字。最多 4 段。 */
 export function Segmented<T extends string>({

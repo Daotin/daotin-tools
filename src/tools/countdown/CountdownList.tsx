@@ -1,6 +1,8 @@
 import { CalendarDays, Plus, Repeat } from 'lucide-react'
 import { Link, useLocation } from 'react-router'
-import { cn } from 'cn'
+import { InlineError } from '@/components/InlineError'
+import { PageSkeleton } from '@/components/Skeleton'
+import { cn } from '@/lib/cn'
 import { SiteAction, roundButton } from '@/components/AppShell'
 import { HeroCard } from '@/components/HeroCard'
 import { IconBadge } from '@/components/IconBadge'
@@ -17,6 +19,16 @@ const eventIcon = (event: CountdownEvent) =>
 /** 目标日期文字：农历事件显示农历，公历显示月日。 */
 function dateText(event: CountdownEvent) {
   return event.is_lunar ? lunarText(event.date) : formatMonthDay(parseDate(event.date))
+}
+
+/** 列表行第二行：日期取下一次发生日，农历再把农历写法放在前面。 */
+function rowMeta({ event, occurrence }: Entry) {
+  const date = formatMonthDay(occurrence.date)
+  return [
+    event.is_lunar ? `${lunarText(event.date)}（${date}）` : date,
+    ...(event.is_lunar ? ['农历'] : []),
+    REPEAT_LABEL[event.repeat],
+  ].join(' · ')
 }
 
 /** 天数 + 单位；今天不显示数字，显示 orange solid 的"今天"。 */
@@ -48,7 +60,6 @@ function Days({ days, size }: { days: number; size: 'hero' | 'row' }) {
 
 function Row({ entry, search }: { entry: Entry; search: string }) {
   const { event, occurrence } = entry
-  const meta = [dateText(event), ...(event.is_lunar ? ['农历'] : []), REPEAT_LABEL[event.repeat]]
   return (
     <Link
       to={{ pathname: `/countdown/${event.id}`, search }}
@@ -58,7 +69,7 @@ function Row({ entry, search }: { entry: Entry; search: string }) {
       <IconBadge icon={eventIcon(event)} size={32} variant="soft" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-body">{event.title}</div>
-        <div className="truncate text-caption text-foreground-secondary">{meta.join(' · ')}</div>
+        <div className="truncate text-caption text-foreground-secondary">{rowMeta(entry)}</div>
       </div>
       <Days days={occurrence.days} size="row" />
     </Link>
@@ -83,7 +94,7 @@ function Empty({ search }: { search: string }) {
 /** embedded：电脑端新建/编辑面板下方的那份列表，不抢站点栏的操作位。 */
 export function CountdownList({ embedded = false }: { embedded?: boolean }) {
   const { search } = useLocation()
-  const { events, error } = useEvents()
+  const { events, error, reload } = useEvents()
 
   const addButton = (
     <Link
@@ -112,10 +123,10 @@ export function CountdownList({ embedded = false }: { embedded?: boolean }) {
         {/* 电脑端站点栏没有返回按钮，"+" 跟在标题右边 */}
         <div className="hidden lg:block">{addButton}</div>
       </div>
-      {error && <p className="text-caption text-red-solid">{error}</p>}
+      <InlineError message={error} onRetry={() => void reload()} />
       {!events ? (
         /* 骨架屏：形状对应 Hero Card */
-        <div className="h-52 animate-pulse rounded-md bg-tool-soft" />
+        <PageSkeleton />
       ) : entries.length === 0 ? (
         <Empty search={search} />
       ) : (

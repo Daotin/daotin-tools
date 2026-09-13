@@ -1,4 +1,4 @@
-import { cn } from 'cn'
+import { cn } from '@/lib/cn'
 
 /** 工具页首屏卡：--tool-soft 底，内边距 24px。全站唯一有颜色底的卡。 */
 export function HeroCard({

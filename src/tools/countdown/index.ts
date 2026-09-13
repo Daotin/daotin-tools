@@ -1,10 +1,14 @@
-import { createElement } from 'react'
+import { createElement, lazy } from 'react'
 import { CalendarDays } from 'lucide-react'
 import type { Tool } from '@/tools'
-import { CountdownDetail } from './CountdownDetail'
-import { CountdownForm } from './CountdownForm'
-import { CountdownList } from './CountdownList'
-import { CountdownSummary } from './CountdownSummary'
+
+// 全部动态 import：农历用的 lunar-typescript 只进这个工具的 chunk，不进主包。
+const CountdownList = lazy(() => import('./CountdownList').then((m) => ({ default: m.CountdownList })))
+const CountdownForm = lazy(() => import('./CountdownForm').then((m) => ({ default: m.CountdownForm })))
+const CountdownDetail = lazy(() => import('./CountdownDetail').then((m) => ({ default: m.CountdownDetail })))
+const CountdownSummary = lazy(() =>
+  import('./CountdownSummary').then((m) => ({ default: m.CountdownSummary })),
+)
 
 export const countdown: Tool = {
   id: 'countdown',

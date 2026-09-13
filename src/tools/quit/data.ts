@@ -36,17 +36,18 @@ export async function createItem(startAt: string, name = '戒烟'): Promise<Quit
 
 /** 破戒时间早于 start_at 时，把 start_at 前移到该时间（design.md 计算规则）。 */
 export async function addRelapse(item: QuitItem, relapsedAt: string, note: string) {
+  // 先前移 start_at 再插记录：哪一步失败都不会留下"记录早于 start_at"的状态
+  if (new Date(relapsedAt) < new Date(item.start_at)) {
+    const { error } = await supabase
+      .from('quit_items')
+      .update({ start_at: relapsedAt })
+      .eq('id', item.id)
+    if (error) throw error
+  }
   const { error } = await supabase
     .from('quit_relapses')
     .insert({ item_id: item.id, relapsed_at: relapsedAt, note: note.trim() || null })
   if (error) throw error
-  if (new Date(relapsedAt) < new Date(item.start_at)) {
-    const { error: e2 } = await supabase
-      .from('quit_items')
-      .update({ start_at: relapsedAt })
-      .eq('id', item.id)
-    if (e2) throw e2
-  }
 }
 
 export async function deleteRelapse(id: string) {
@@ -84,13 +85,17 @@ export async function importAntix(data: AntixImport): Promise<{ added: number; s
     if (error) throw error
   }
 
+  // 每 100 个 legacy_id 查一批：几千条记录一次性塞进 .in() 会把 URL 撑爆
   const legacyIds = data.relapses.map((r) => r.legacy_id)
-  const { data: known, error } = await supabase
-    .from('quit_relapses')
-    .select('legacy_id')
-    .in('legacy_id', legacyIds)
-  if (error) throw error
-  const seen = new Set(known.map((r) => r.legacy_id))
+  const seen = new Set<string | null>()
+  for (let i = 0; i < legacyIds.length; i += 100) {
+    const { data: known, error } = await supabase
+      .from('quit_relapses')
+      .select('legacy_id')
+      .in('legacy_id', legacyIds.slice(i, i + 100))
+    if (error) throw error
+    for (const row of known) seen.add(row.legacy_id)
+  }
 
   const rows = data.relapses
     .filter((r) => !seen.has(r.legacy_id))

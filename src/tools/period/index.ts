@@ -1,8 +1,9 @@
-import { createElement } from 'react'
+import { createElement, lazy } from 'react'
 import { Droplet } from 'lucide-react'
 import type { Tool } from '@/tools'
-import { PeriodPage } from './PeriodPage'
-import { PeriodSummary } from './PeriodSummary'
+
+const PeriodPage = lazy(() => import('./PeriodPage').then((m) => ({ default: m.PeriodPage })))
+const PeriodSummary = lazy(() => import('./PeriodSummary').then((m) => ({ default: m.PeriodSummary })))
 
 export const period: Tool = {
   id: 'period',
