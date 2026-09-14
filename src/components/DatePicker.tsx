@@ -27,6 +27,18 @@ function lunarFullText(date: Date): string {
 }
 
 /**
+ * 标题下的农历月份，如"农历八月"或跨月时"农历八月 – 九月"。
+ * 标题写的是公历月份，格子里只有日名（初五），不标出农历月就会被读成"九月初五"。
+ */
+export function lunarMonthSpan(anchor: Date): string {
+  const y = anchor.getFullYear()
+  const m = anchor.getMonth()
+  const first = `${lunarOf(new Date(y, m, 1)).getMonthInChinese()}月`
+  const last = `${lunarOf(new Date(y, m + 1, 0)).getMonthInChinese()}月`
+  return first === last ? `农历${first}` : `农历${first} – ${last}`
+}
+
+/**
  * 格子里的农历小字，优先级：传统节日 > 每月初一显示月名 > 日名。
  * 节日名去掉尾字"节"（"中秋节"→"中秋"），两个字的（"春节"）原样保留。
  */
@@ -277,9 +289,16 @@ export function DatePicker({
           </button>
         </div>
 
-        {showLunar && (
+        {/* 标题是公历月份，这里标出对应的农历月，避免"9 月"+"初五"被读成九月初五 */}
+        {!picking && (
           <div className="mt-1 text-center text-caption text-foreground-secondary">
-            按农历重复，每年按农历 {lunarFullText(selected)} 计算
+            {lunarMonthSpan(anchor)}
+          </div>
+        )}
+
+        {showLunar && (
+          <div className="mt-0.5 text-center text-caption text-tool-solid">
+            已选农历 {lunarFullText(selected)}，每年按此重复
           </div>
         )}
 

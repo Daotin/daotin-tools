@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CountdownEvent } from '@/lib/database.types'
-import { lunarCellLabel } from '@/components/DatePicker'
+import { lunarCellLabel, lunarMonthSpan } from '@/components/DatePicker'
 import { lunarText, nextOccurrence, parseDate, sortEvents, toDateString } from './rules'
 
 type Input = {
@@ -160,5 +160,24 @@ describe('日历格子的农历标签', () => {
 
   it('普通日显示日名', () => {
     expect(lunarCellLabel(parseDate('2026-06-25'))).toBe('十一')
+  })
+})
+
+describe('lunarMonthSpan（标题下的农历月份）', () => {
+  it('1970 年 9 月跨农历八月和九月', () => {
+    // 用户把"1970 年 9 月"的"初五"读成了九月初五，实际是八月初五，所以标题要标出农历月
+    expect(lunarMonthSpan(new Date(1970, 8, 1))).toBe('农历八月 – 九月')
+  })
+
+  it('只跨一个农历月时不显示区间', () => {
+    // 2026 年 2 月：2/17 春节（正月初一），整月落在腊月与正月
+    const span = lunarMonthSpan(new Date(2026, 1, 1))
+    expect(span.startsWith('农历')).toBe(true)
+    expect(span.includes('–') ? span.split('–').length : 1).toBeLessThanOrEqual(2)
+  })
+
+  it('闰月月名带闰字', () => {
+    // 1990 年闰五月从 6 月 23 日开始，所以 6 月跨五月与闰五月
+    expect(lunarMonthSpan(new Date(1990, 5, 1))).toBe('农历五月 – 闰五月')
   })
 })
