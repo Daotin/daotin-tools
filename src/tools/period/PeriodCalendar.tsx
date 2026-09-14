@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/cn'
 import type { Period } from '@/lib/database.types'
 import type { Prediction } from './predict'
-import { addDays, OVULATION_CAPTION, parseDate, periodEnd, startOfDay } from './predict'
+import { addDays, parseDate, periodEnd, startOfDay } from './predict'
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 
@@ -190,7 +190,6 @@ export function PeriodCalendar({
           <Legend swatch="bg-tool/10 ring-1 ring-tool" text="排卵日（排卵）" />
           <Legend swatch="bg-accent ring-1 ring-ring" text="今天" />
         </div>
-        <div className="mt-1.5 text-xs text-muted-foreground">{OVULATION_CAPTION}</div>
       </CardContent>
     </Card>
   )

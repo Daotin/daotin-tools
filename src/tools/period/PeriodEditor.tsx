@@ -1,15 +1,15 @@
 import { useState } from 'react'
+import { DatePicker } from '@/components/DatePicker'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import type { Period } from '@/lib/database.types'
 import { toDateString } from '@/lib/date'
 import type { PeriodInput } from './data'
 
-/** 今天的 'YYYY-MM-DD'，给 <input type="date"> 的 max 和校验共用。 */
+/** 今天的 'YYYY-MM-DD'，给日期选择器的 max 和校验共用。 */
 const todayString = () => toDateString(new Date())
 
 /**
@@ -84,28 +84,27 @@ export function PeriodEditor({
   return (
     <Sheet open onClose={onClose} title="编辑记录">
       <FieldGroup className="gap-4">
+        {/* DatePicker 是一组控件而不是单个输入框，没有可指的 id，label 渲染成 span */}
         <Field>
-          <FieldLabel htmlFor="period-start">开始日</FieldLabel>
-          <Input
-            id="period-start"
-            type="date"
-            max={todayString()}
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-          />
+          <FieldLabel asChild>
+            <span>开始日</span>
+          </FieldLabel>
+          <DatePicker value={start} max={todayString()} onChange={setStart} />
         </Field>
 
         <Field>
-          <FieldLabel htmlFor="period-end">结束日</FieldLabel>
-          {/* 不禁用：补填时开关本来就是开的，禁用会逼用户先关开关。填了日期就自动关掉"未结束" */}
-          <Input
-            id="period-end"
-            type="date"
-            max={todayString()}
+          <FieldLabel asChild>
+            <span>结束日</span>
+          </FieldLabel>
+          {/* 不禁用：补填时开关本来就是开的，禁用会逼用户先关开关。选了日期就自动关掉"未结束" */}
+          <DatePicker
             value={end}
-            onChange={(e) => {
-              setEnd(e.target.value)
-              if (e.target.value) setOpen(false)
+            placeholder="未结束"
+            min={start}
+            max={todayString()}
+            onChange={(value) => {
+              setEnd(value)
+              if (value) setOpen(false)
             }}
           />
         </Field>

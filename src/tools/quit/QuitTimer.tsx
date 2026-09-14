@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { CigaretteOff } from 'lucide-react'
+import { DatePicker } from '@/components/DatePicker'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
@@ -15,31 +16,48 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { toDateString } from '@/lib/date'
+import { useMediaQuery } from '@/lib/media'
 import { CalendarPanel } from './QuitCalendar'
 import { useQuit } from './QuitLayout'
 import { addRelapse, createItem } from './data'
 import { computeStats, formatClock } from './stats'
 
-/** Date → `<input type="datetime-local">` 的值（本地时区，精确到分钟）。 */
-function toLocalInput(date: Date) {
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
-    .toISOString()
-    .slice(0, 16)
+// 电脑端把统计直接排在计时下面，不再走 tab；recharts 只在这时候才下载
+const QuitStats = lazy(() => import('./QuitStats').then((m) => ({ default: m.QuitStats })))
+
+/** Date → 'HH:mm'，给 `<input type="time">` 和文案共用。 */
+const hhmm = (d: Date) =>
+  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+
+/** 计时卡下面那排数字，一格一个。 */
+function Num({ label, value, unit }: { label: string; value: number; unit: string }) {
+  return (
+    <div className="flex-1">
+      <div className="text-sm text-muted-foreground">{label}</div>
+      <div className="mt-1 flex items-baseline gap-1">
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">{value}</span>
+        <span className="text-sm text-muted-foreground">{unit}</span>
+      </div>
+    </div>
+  )
 }
 
 function formatStart(ms: number) {
   const d = new Date(ms)
-  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
-  return `自 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${time} 起`
+  return `自 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${hhmm(d)} 起`
 }
 
 export function QuitTimer() {
   const { item, relapses, mock, reload } = useQuit()
   const [now, setNow] = useState(() => Date.now())
   const [open, setOpen] = useState(false)
-  const [at, setAt] = useState('')
+  /** 破戒时刻拆成日期和时分两个控件（shadcn 的日期时间范式） */
+  const [atDate, setAtDate] = useState('')
+  const [atTime, setAtTime] = useState('')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
+  const desktop = useMediaQuery('(min-width: 80rem)')
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000)
@@ -84,14 +102,19 @@ export function QuitTimer() {
 
   async function onConfirm() {
     if (!item) return
-    // 原生 max 只挡选择器，手输仍可能超，这里再拦一次
-    if (new Date(at).getTime() > Date.now()) {
+    const when = new Date(`${atDate}T${atTime}`)
+    if (Number.isNaN(when.getTime())) {
+      toast('请选择破戒时间')
+      return
+    }
+    // 日期选择器只挡到"今天"，今天里的时分仍可能超，这里再拦一次
+    if (when.getTime() > Date.now()) {
       toast('破戒时间不能晚于现在')
       return
     }
     setBusy(true)
     try {
-      if (!mock) await addRelapse(item, new Date(at).toISOString(), note)
+      if (!mock) await addRelapse(item, when.toISOString(), note)
       await reload()
       setOpen(false)
       setNote('')
@@ -105,82 +128,94 @@ export function QuitTimer() {
   }
 
   return (
-    <div className="flex flex-1 flex-col xl:flex-row xl:items-start xl:gap-6">
-      <div className="flex flex-1 flex-col xl:min-w-0">
-        <Card className="fade-in">
-          <CardContent>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <CigaretteOff className="size-4 text-tool" />
-            已坚持
-          </div>
-          <div className="mt-3 flex items-baseline gap-1">
-            <span className="text-5xl font-bold tracking-tight tabular-nums">
-              {stats.currentDays}
-            </span>
-            <span className="text-sm text-muted-foreground">天</span>
-          </div>
-          <div className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
-            {formatClock(stats.currentMs)}
-          </div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            {formatStart(stats.streakStart)}
-          </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mt-4">
-          <CardContent className="flex items-stretch">
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground">最长记录</div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                  {stats.longestDays}
+    <>
+      <div className="flex flex-col max-xl:flex-1 xl:flex-row xl:items-start xl:gap-6">
+        <div className="flex flex-1 flex-col xl:min-w-0">
+          <Card className="fade-in">
+            <CardContent>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <CigaretteOff className="size-4 text-tool" />
+                已坚持
+              </div>
+              <div className="mt-3 flex items-baseline gap-1">
+                <span className="text-5xl font-bold tracking-tight tabular-nums">
+                  {stats.currentDays}
                 </span>
                 <span className="text-sm text-muted-foreground">天</span>
               </div>
-            </div>
-            <Separator orientation="vertical" className="mx-4" />
-            <div className="flex-1">
-              <div className="text-sm text-muted-foreground">总破戒</div>
-              <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold tracking-tight tabular-nums">
-                  {stats.relapseCount}
-                </span>
-                <span className="text-sm text-muted-foreground">次</span>
+              <div className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+                {formatClock(stats.currentMs)}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="mt-2 text-sm text-muted-foreground">
+                {formatStart(stats.streakStart)}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Button
-          variant="destructive"
-          size="lg"
-          className="mt-auto w-full xl:mt-6 xl:w-50"
-          onClick={() => {
-            setAt(toLocalInput(new Date()))
-            setOpen(true)
-          }}
-        >
-          破戒
-        </Button>
+          {/* 电脑端统计就排在下面，这排数字顺带把"累计天数"也接过来，统计里就不重复了 */}
+          <Card className="mt-4">
+            <CardContent className="flex items-stretch">
+              <Num label="最长记录" value={stats.longestDays} unit="天" />
+              {desktop && (
+                <>
+                  <Separator orientation="vertical" className="mx-4" />
+                  <Num label="累计天数" value={stats.totalDays} unit="天" />
+                </>
+              )}
+              <Separator orientation="vertical" className="mx-4" />
+              <Num label="总破戒" value={stats.relapseCount} unit="次" />
+            </CardContent>
+          </Card>
+
+          <Button
+            variant="destructive"
+            size="lg"
+            className="mt-auto w-full xl:mt-6 xl:w-50"
+            onClick={() => {
+              const d = new Date()
+              setAtDate(toDateString(d))
+              setAtTime(hhmm(d))
+              setOpen(true)
+            }}
+          >
+            破戒
+          </Button>
+        </div>
+
+        {/* 电脑端 ≥1280px 并排：右列月历，所以电脑端没有"日历"这个 tab */}
+        {desktop && (
+          <div className="w-full xl:flex-1 xl:min-w-0">
+            <CalendarPanel />
+          </div>
+        )}
       </div>
 
-      {/* 电脑端 ≥1280px 并排：右列月历 */}
-      <div className="hidden w-full xl:block xl:flex-1 xl:min-w-0">
-        <CalendarPanel />
-      </div>
+      {/* 统计同理，电脑端直接铺在下面，不再单独占一个 tab */}
+      {desktop && (
+        <div className="mt-6">
+          <Suspense fallback={null}>
+            <QuitStats embedded />
+          </Suspense>
+        </div>
+      )}
 
       <Sheet open={open} onClose={() => setOpen(false)} title="记录破戒">
         <FieldGroup>
+          {/* DatePicker 是一组控件而不是单个输入框，没有可指的 id，label 渲染成 span */}
           <Field>
-            <FieldLabel htmlFor="quit-at">时间</FieldLabel>
+            <FieldLabel asChild>
+              <span>日期</span>
+            </FieldLabel>
+            <DatePicker value={atDate} max={toDateString(new Date(now))} onChange={setAtDate} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="quit-time">时间</FieldLabel>
             <Input
-              id="quit-at"
-              type="datetime-local"
-              max={toLocalInput(new Date(now))}
+              id="quit-time"
+              type="time"
               className="tabular-nums"
-              value={at}
-              onChange={(e) => setAt(e.target.value)}
+              value={atTime}
+              onChange={(e) => setAtTime(e.target.value)}
             />
           </Field>
           <Field>
@@ -208,6 +243,6 @@ export function QuitTimer() {
           </Button>
         </div>
       </Sheet>
-    </div>
+    </>
   )
 }

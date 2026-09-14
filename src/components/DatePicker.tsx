@@ -58,22 +58,24 @@ export function DatePicker({
   value,
   onChange,
   showLunar = false,
+  placeholder = '选择日期',
   min,
   max,
   className,
 }: {
-  /** 公历 'YYYY-MM-DD' */
+  /** 公历 'YYYY-MM-DD'，空串表示还没选 */
   value: string
   onChange: (value: string) => void
   showLunar?: boolean
+  placeholder?: string
   min?: string
   max?: string
   className?: string
 }) {
   const [open, setOpen] = useState(false)
   /** 当前翻到的月份，「今天」和年月下拉都改它 */
-  const [month, setMonth] = useState(() => parseDate(value))
-  const selected = parseDate(value)
+  const [month, setMonth] = useState(() => (value ? parseDate(value) : new Date()))
+  const selected = value ? parseDate(value) : undefined
 
   function pick(date: Date) {
     onChange(toDateString(date))
@@ -85,15 +87,15 @@ export function DatePicker({
       open={open}
       onOpenChange={(next) => {
         // 每次打开都回到当前值所在的月份
-        if (next) setMonth(parseDate(value))
+        if (next) setMonth(value ? parseDate(value) : new Date())
         setOpen(next)
       }}
     >
       <PopoverTrigger asChild>
         <Button variant="outline" className={cn('w-full justify-start font-normal', className)}>
           <CalendarIcon className="text-muted-foreground" />
-          {value}
-          {showLunar && value && (
+          {selected ? value : <span className="text-muted-foreground">{placeholder}</span>}
+          {showLunar && selected && (
             <span className="text-muted-foreground">· 农历{lunarFullText(selected)}</span>
           )}
         </Button>
@@ -101,11 +103,10 @@ export function DatePicker({
       <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
-          required
           locale={zhCN}
           weekStartsOn={1}
           selected={selected}
-          onSelect={pick}
+          onSelect={(date) => date && pick(date)}
           month={month}
           onMonthChange={setMonth}
           captionLayout="dropdown"
@@ -126,10 +127,13 @@ export function DatePicker({
             MonthCaption: ({ calendarMonth, children, className }) => (
               <div className={className}>
                 {children}
-                <div className="text-center text-xs text-muted-foreground">
-                  {lunarMonthSpan(calendarMonth.date)}
-                </div>
+                {/* 只有格子里印着农历日名时才需要标农历月，否则"9 月"+"初五"会被读成九月初五 */}
                 {showLunar && (
+                  <div className="text-center text-xs text-muted-foreground">
+                    {lunarMonthSpan(calendarMonth.date)}
+                  </div>
+                )}
+                {showLunar && selected && (
                   <div className="mt-0.5 text-center text-xs text-tool">
                     已选农历 {lunarFullText(selected)}，每年按此重复
                   </div>

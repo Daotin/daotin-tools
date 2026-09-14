@@ -22,7 +22,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Input } from '@/components/ui/input'
 import {
   Item,
   ItemActions,
@@ -33,6 +32,7 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import type { Period } from '@/lib/database.types'
+import { DatePicker } from '@/components/DatePicker'
 import { PeriodCalendar } from './PeriodCalendar'
 import { PeriodEditor, validate } from './PeriodEditor'
 import type { PeriodInput } from './data'
@@ -40,9 +40,7 @@ import { createPeriod, deletePeriod, updatePeriod, usePeriods } from './data'
 import { cn } from '@/lib/cn'
 import type { Cycle, Prediction, Upcoming } from './predict'
 import {
-  backtestText,
   formatMonthDay,
-  OVULATION_CAPTION,
   parseDate,
   periodEnd,
   predict,
@@ -78,12 +76,7 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
         <EmptyDescription>填完就能算出下次大概什么时候来</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Input
-          type="date"
-          max={toDateString(new Date())}
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <DatePicker value={date} max={toDateString(new Date())} onChange={setDate} />
         <Button
           className="h-11 w-full"
           disabled={!date}
@@ -104,19 +97,9 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
   )
 }
 
-function Hero({
-  periods,
-  prediction,
-  onFix,
-}: {
-  periods: Period[]
-  prediction: Prediction
-  /** 点"还没填结束日"那行时打开该条的编辑抽屉 */
-  onFix: (period: Period) => void
-}) {
+function Hero({ periods, prediction }: { periods: Period[]; prediction: Prediction }) {
   const status = statusText(periods, prediction)
   if (!status) return null
-  const forgot = prediction.cycles.find((c) => c.forgot)?.period
   return (
     <Card className="fade-in gap-4">
       <CardHeader>
@@ -135,8 +118,8 @@ function Hero({
         <CardDescription className="text-base text-foreground">{status.title}</CardDescription>
       </CardHeader>
 
-      <CardContent>
-        {status.rest.length > 0 && (
+      {status.rest.length > 0 && (
+        <CardContent>
           <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
             {status.rest.map((event) => (
               <div key={event.title} className="flex items-center gap-1.5">
@@ -147,21 +130,8 @@ function Hero({
               </div>
             ))}
           </div>
-        )}
-
-        {forgot && (
-          <Button
-            variant="link"
-            className="h-auto justify-start p-0 text-xs underline"
-            onClick={() => onFix(forgot)}
-          >
-            {formatMonthDay(parseDate(forgot.start_date))}那次还没填结束日
-          </Button>
-        )}
-
-        <div className="mt-3 text-xs text-muted-foreground">{backtestText(prediction)}</div>
-        <div className="mt-0.5 text-xs text-muted-foreground">{OVULATION_CAPTION}</div>
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   )
 }
@@ -280,7 +250,7 @@ export function PeriodPage() {
         <div className="flex flex-col xl:flex-row xl:items-start xl:gap-6">
           <div className="flex flex-col gap-3 xl:min-w-0 xl:flex-1">
             {prediction ? (
-              <Hero periods={list} prediction={prediction} onFix={setEditing} />
+              <Hero periods={list} prediction={prediction} />
             ) : (
               <Guide
                 onSave={async (date) => {

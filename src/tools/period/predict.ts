@@ -191,9 +191,6 @@ export function backtestText(prediction: Prediction): string {
   return `按当前算法回测，过去 ${bt.count} 次平均相差 ${bt.mae.toFixed(1)} 天${few} · 历史误差参考范围 ${from} – ${to}`
 }
 
-/** 排卵相关文案旁的固定提示。 */
-export const OVULATION_CAPTION = '按日历估算，不能作为避孕依据'
-
 /** 一条记录在日历上覆盖的最后一天：填了结束日就用它，没填按预测经期长度算。 */
 export function periodEnd(period: Period, periodLength: number): Date {
   return period.end_date

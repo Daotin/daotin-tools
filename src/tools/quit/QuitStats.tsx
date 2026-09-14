@@ -1,5 +1,6 @@
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/cn'
 import { useQuit } from './QuitLayout'
 import { computeStats, weeklyCounts } from './stats'
 
@@ -17,7 +18,8 @@ function Stat({ label, value, unit }: { label: string; value: number; unit: stri
   )
 }
 
-export function QuitStats() {
+/** embedded：电脑端嵌在计时页下面时，"当前坚持天数"上面的计时卡已经写了，这里不再重复。 */
+export function QuitStats({ embedded = false }: { embedded?: boolean }) {
   const { item, relapses } = useQuit()
   if (!item) {
     return (
@@ -41,25 +43,30 @@ export function QuitStats() {
 
   return (
     <>
-      <Card>
-        <CardContent>
-          <div className="text-sm text-muted-foreground">当前</div>
-          <div className="mt-1 flex items-baseline gap-1">
-            <span className="text-4xl font-bold tracking-tight tabular-nums">
-              {stats.currentDays}
-            </span>
-            <span className="text-sm text-muted-foreground">天</span>
-          </div>
-        </CardContent>
-      </Card>
+      {!embedded && (
+        <Card>
+          <CardContent>
+            <div className="text-sm text-muted-foreground">当前</div>
+            <div className="mt-1 flex items-baseline gap-1">
+              <span className="text-4xl font-bold tracking-tight tabular-nums">
+                {stats.currentDays}
+              </span>
+              <span className="text-sm text-muted-foreground">天</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <div className="mt-4 grid grid-cols-3 gap-4">
-        <Stat label="最长记录" value={stats.longestDays} unit="天" />
-        <Stat label="累计天数" value={stats.totalDays} unit="天" />
-        <Stat label="总破戒" value={stats.relapseCount} unit="次" />
-      </div>
+      {/* 嵌在计时页里时，这三个数字已经在计时卡下面那排了 */}
+      {!embedded && (
+        <div className="mt-4 grid grid-cols-3 gap-4">
+          <Stat label="最长记录" value={stats.longestDays} unit="天" />
+          <Stat label="累计天数" value={stats.totalDays} unit="天" />
+          <Stat label="总破戒" value={stats.relapseCount} unit="次" />
+        </div>
+      )}
 
-      <Card className="mt-4">
+      <Card className={cn(!embedded && 'mt-4')}>
         <CardHeader>
           <CardTitle>每周破戒</CardTitle>
         </CardHeader>
