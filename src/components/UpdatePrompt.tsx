@@ -7,10 +7,11 @@ export function UpdatePrompt() {
     updateServiceWorker,
   } = useRegisterSW()
 
-  if (!needRefresh) return null
-
   return (
-    <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4">
+    <div
+      data-open={needRefresh}
+      className="reveal fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 [--reveal-offset:8px]"
+    >
       {/* 底 --foreground、字 --background：深色下自然反转，不写死黑白 */}
       <div className="flex items-center gap-4 rounded-pill bg-foreground px-5 py-3 text-body-sm text-background shadow-[var(--shadow-raised)]">
         有新版本

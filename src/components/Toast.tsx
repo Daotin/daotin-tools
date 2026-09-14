@@ -8,14 +8,15 @@ export function toast(message: string) {
 }
 
 export function Toaster() {
-  const [message, setMessage] = useState('')
+  // 到点只关 open、不清 message：退场那 200ms 里文字还得在
+  const [state, setState] = useState({ message: '', open: false })
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>
     emit = (next) => {
-      setMessage(next)
+      setState({ message: next, open: true })
       clearTimeout(timer)
-      timer = setTimeout(() => setMessage(''), 2000)
+      timer = setTimeout(() => setState((s) => ({ ...s, open: false })), 2000)
     }
     return () => {
       emit = () => {}
@@ -23,14 +24,14 @@ export function Toaster() {
     }
   }, [])
 
-  if (!message) return null
   return (
     <div
       role="status"
-      className="pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center"
+      data-open={state.open}
+      className="reveal pointer-events-none fixed inset-x-0 bottom-8 z-50 flex justify-center [--reveal-offset:8px]"
     >
       <span className="rounded-pill bg-foreground px-5 py-3 text-body-sm text-white">
-        {message}
+        {state.message}
       </span>
     </div>
   )

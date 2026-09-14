@@ -7,6 +7,7 @@ import {
   parseDate,
   predict,
   statusText,
+  upcoming,
   toDateString,
 } from './predict'
 
@@ -24,6 +25,9 @@ function build(first: string, cycles: number[], end = 5): Period[] {
 }
 
 const at = (value: string) => parseDate(value)
+
+const status = (periods: Period[], today: string) =>
+  statusText(periods, predict(periods, at(today)), at(today))!
 
 describe('周期长度（验收 1）', () => {
   it('28、28、28、50、50、50 → 不规律，取中位数 39', () => {
@@ -182,9 +186,6 @@ describe('Hero 误差文案（验收 5）', () => {
 })
 
 describe('文案状态机（验收 7：沿用 v1 规则）', () => {
-  const status = (periods: Period[], today: string) =>
-    statusText(periods, predict(periods, at(today)), at(today))!
-
   it('今天在已记录经期内 → 经期第 N 天', () => {
     const periods = build('2026-01-01', [28, 28, 28])
     // 最后一条 2026-03-26 – 2026-03-30
@@ -200,13 +201,16 @@ describe('文案状态机（验收 7：沿用 v1 规则）', () => {
     expect(status(periods, '2026-04-28').title).toBe('已推迟 5 天')
   })
 
-  it('今天在排卵期内 → 排卵期中，带排卵日日期', () => {
+  // 改写原因：Hero 改成"最近的未来事件优先"后不再有"排卵期中"这一档，
+  // 排卵日当天最近的事件就是排卵日本身（0 天 = 今天），排卵期开始已经过去。
+  it('排卵日当天 → 主事件是排卵日，0 天', () => {
     const periods = build('2026-01-01', [28, 28, 28])
     // 下次 2026-04-23，排卵日 2026-04-09，排卵期 4-4 到 4-10
     const s = status(periods, '2026-04-09')
-    expect(s.title).toBe('排卵期中，预计排卵日 4 月 9 日')
-    expect(s.value).toBe(14)
+    expect(s.title).toBe('排卵日')
+    expect(s.value).toBe(0)
     expect(s.unit).toBe('天后')
+    expect(s.rest.map((e) => e.title)).toEqual(['经期开始'])
   })
 
   it('其他 → 预计 N 天后经期开始', () => {
@@ -215,5 +219,81 @@ describe('文案状态机（验收 7：沿用 v1 规则）', () => {
     expect(s.title).toBe('经期开始')
     expect(s.value).toBe(9)
     expect(s.summary).toBe('预计经期开始')
+  })
+})
+
+describe('三个预测事件', () => {
+  const periods = build('2026-01-01', [28, 28, 28])
+  // 最后一条开始日 2026-03-26，下次 4-23，排卵日 4-09，排卵期开始 4-04
+
+  it('按日期升序排，过去的不出现', () => {
+    const list = upcoming(predict(periods, at('2026-04-01'))!, at('2026-04-01'))
+    expect(list.map((e) => [e.title, e.days])).toEqual([
+      ['排卵期开始', 3],
+      ['排卵日', 8],
+      ['经期开始', 22],
+    ])
+    expect(list.map((e) => e.kind)).toEqual(['ovulation', 'ovulation', 'period'])
+
+    // 排卵期开始、排卵日都过去以后只剩经期开始
+    const late = predict(periods, at('2026-04-14'))!
+    expect(upcoming(late, at('2026-04-14')).map((e) => e.title)).toEqual(['经期开始'])
+  })
+
+  it('例外一：经期中仍列出全部未来事件', () => {
+    // 最后一条 2026-03-26 – 2026-03-30
+    const s = status(periods, '2026-03-28')
+    expect(s.title).toBe('经期第 3 天')
+    expect(s.rest.map((e) => [e.title, e.days])).toEqual([
+      ['排卵期开始', 7],
+      ['排卵日', 12],
+      ['经期开始', 26],
+    ])
+  })
+
+  it('例外二：已推迟时主数字仍是推迟天数', () => {
+    const s = status(periods, '2026-04-28')
+    expect(s.title).toBe('已推迟 5 天')
+    // 三个事件都由 nextStart 推出来，nextStart 已经过去，所以这时必然一个都不剩
+    expect(s.rest).toEqual([])
+  })
+})
+
+describe('未填结束日', () => {
+  /** 前三条正常（经期长度 5 天），最后一条只有开始日。 */
+  const open = (start: string): Period[] => [
+    ...build('2026-01-01', [28, 28]),
+    { id: 'open', user_id: 'test', created_at: '2026-01-01T00:00:00Z', start_date: start, end_date: null },
+  ]
+
+  it('超过「预测经期长度 + 3 天」才算忘填', () => {
+    const periods = open('2026-03-26')
+    expect(predict(periods, at('2026-03-26'))!.periodLength).toBe(5)
+    // 3-26 起第 9 天是 4-03，差 8 天，还没超过 5 + 3
+    expect(predict(periods, at('2026-04-03'))!.cycles[0].forgot).toBe(false)
+    // 4-04 差 9 天，超了
+    expect(predict(periods, at('2026-04-04'))!.cycles[0].forgot).toBe(true)
+    // 填了结束日就永远不算忘填
+    const closed = periods.map((p) => ({ ...p, end_date: p.end_date ?? '2026-03-30' }))
+    expect(predict(closed, at('2026-12-31'))!.cycles[0].forgot).toBe(false)
+  })
+
+  it('忘填的开始日照样参与周期计算，但不参与经期长度平均', () => {
+    const periods = open('2026-03-26')
+    const p = predict(periods, at('2026-06-01'))!
+    // 周期 [28, 28] → 最后一条 3-26 + 28 = 4-23
+    expect(toDateString(p.nextStart)).toBe('2026-04-23')
+    expect(p.cycles[0].length).toBe(28)
+    expect(p.periodLength).toBe(5) // 只统计前两条已填结束日的记录
+  })
+
+  it('超期以后 Hero 不再显示"经期第 N 天"', () => {
+    const periods = open('2026-03-26')
+    // 区间只画到 3-26 + 5 − 1 = 3-30
+    expect(statusText(periods, predict(periods, at('2026-03-30')), at('2026-03-30'))!.title)
+      .toBe('经期第 5 天')
+    const after = statusText(periods, predict(periods, at('2026-04-04')), at('2026-04-04'))!
+    expect(after.title).not.toContain('经期第')
+    expect(after.title).toBe('排卵期开始')
   })
 })

@@ -42,6 +42,8 @@ export type Cycle = {
   length: number | null
   /** 这个周期是否在 15–90 内、参与了估算（length 为 null 时恒为 false） */
   counted: boolean
+  /** 没填结束日，且开始日距今超过「预测经期长度 + 3 天」：当成忘了填，不是还在经期 */
+  forgot: boolean
 }
 
 export type Backtest = {
@@ -111,16 +113,20 @@ function core(periods: Period[], today: Date): Omit<Prediction, 'backtest'> | nu
   // 排卵期固定：排卵日前 5 天到后 1 天，不随样本多少放宽
   const ovulation = addDays(nextStart, -14)
 
+  const day = startOfDay(today)
   const counted: Cycle[] = valid.map((period, i) => ({
     period,
     length: i === 0 ? null : allCycles[i - 1],
     counted: i > 0 && inRange(allCycles[i - 1]),
+    forgot:
+      !period.end_date &&
+      differenceInCalendarDays(day, parseDate(period.start_date)) > periodLength + 3,
   }))
   // 开始日在未来的记录不参与任何计算，但仍要出现在历史里，否则用户没法删掉它
   const futures: Cycle[] = [...periods]
     .filter((p) => p.start_date > todayStr)
     .sort((a, b) => b.start_date.localeCompare(a.start_date))
-    .map((period) => ({ period, length: null, counted: false }))
+    .map((period) => ({ period, length: null, counted: false, forgot: false }))
 
   return {
     cycleLength,
@@ -195,6 +201,29 @@ export function periodEnd(period: Period, periodLength: number): Date {
     : addDays(parseDate(period.start_date), periodLength - 1)
 }
 
+/** Hero 里要列出的一个未来事件。`kind` 只决定小圆点颜色。 */
+export type Upcoming = {
+  kind: 'period' | 'ovulation'
+  title: string
+  date: Date
+  /** 距今天数，0 表示就是今天 */
+  days: number
+}
+
+/** 三个预测事件里还没过去的，按日期升序。排卵期开始就是排卵日前 5 天。 */
+export function upcoming(prediction: Prediction, today: Date = new Date()): Upcoming[] {
+  const day = startOfDay(today)
+  const all: Omit<Upcoming, 'days'>[] = [
+    { kind: 'period', title: '经期开始', date: prediction.nextStart },
+    { kind: 'ovulation', title: '排卵期开始', date: prediction.fertileStart },
+    { kind: 'ovulation', title: '排卵日', date: prediction.ovulation },
+  ]
+  return all
+    .map((e) => ({ ...e, days: differenceInCalendarDays(e.date, day) }))
+    .filter((e) => e.days >= 0)
+    .sort((a, b) => a.days - b.days)
+}
+
 export type Status = {
   /** Hero Card 数字上方的小字 */
   caption: string
@@ -204,11 +233,13 @@ export type Status = {
   title: string
   /** 首页卡片的一行说明 */
   summary: string
+  /** 大数字之外还要列出的未来事件（大数字取自事件时，这里是其余的） */
+  rest: Upcoming[]
 }
 
 /**
- * design.md 的四种文案，按优先级取第一条命中的。
- * 大数字统一是"距离下次经期开始的天数"，前两种状态例外（经期第几天 / 推迟几天）。
+ * 大数字取最近的一个未来事件（经期开始 / 排卵期开始 / 排卵日），
+ * 只有"今天在经期内""已推迟"两种情况例外；两种例外下 `rest` 仍是全部未来事件。
  */
 export function statusText(
   periods: Period[],
@@ -217,40 +248,45 @@ export function statusText(
 ): Status | null {
   if (!prediction) return null
   const day = startOfDay(today)
+  const events = upcoming(prediction, day)
 
-  // 1. 今天在已记录经期内
+  // 1. 今天在已记录经期内（未填结束日的记录只按预测经期长度算到头，不会一直命中）
   for (const period of periods) {
     const start = parseDate(period.start_date)
     if (day < start) continue
     if (day > periodEnd(period, prediction.periodLength)) continue
     const n = differenceInCalendarDays(day, start) + 1
-    return { caption: '经期', value: n, unit: '天', title: `经期第 ${n} 天`, summary: '经期中' }
-  }
-
-  // 2. 今天已过预测开始日且没记新经期（记了新的开始日，nextStart 就往后推了）
-  const toNext = differenceInCalendarDays(prediction.nextStart, day)
-  if (toNext < 0) {
-    const n = -toNext
-    return { caption: '推迟', value: n, unit: '天', title: `已推迟 ${n} 天`, summary: '已推迟' }
-  }
-
-  // 3. 今天在排卵期内
-  if (day >= prediction.fertileStart && day <= prediction.fertileEnd) {
     return {
-      caption: '预测',
-      value: toNext,
-      unit: '天后',
-      title: `排卵期中，预计排卵日 ${formatMonthDay(prediction.ovulation)}`,
-      summary: '排卵期中',
+      caption: '经期',
+      value: n,
+      unit: '天',
+      title: `经期第 ${n} 天`,
+      summary: '经期中',
+      rest: events,
     }
   }
 
-  // 4. 其他
+  // 2. 今天已过预测开始日且没记新经期（记了新的开始日，nextStart 就往后推了）
+  const late = differenceInCalendarDays(day, prediction.nextStart)
+  if (late > 0) {
+    return {
+      caption: '推迟',
+      value: late,
+      unit: '天',
+      title: `已推迟 ${late} 天`,
+      summary: '已推迟',
+      rest: events,
+    }
+  }
+
+  // 3. 最近的那个未来事件
+  const next = events[0]
   return {
     caption: '预测',
-    value: toNext,
+    value: next.days,
     unit: '天后',
-    title: '经期开始',
-    summary: '预计经期开始',
+    title: next.title,
+    summary: `预计${next.title}`,
+    rest: events.slice(1),
   }
 }

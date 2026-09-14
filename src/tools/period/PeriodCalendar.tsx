@@ -93,7 +93,7 @@ function Day({
       <span
         className={cn(
           'flex size-[34px] items-center justify-center rounded-pill font-rounded text-body-sm font-semibold tabular-nums',
-          plain && date.getTime() > todayMs && 'text-foreground-tertiary',
+          plain && date.getTime() > todayMs && 'text-foreground-secondary',
           mark.recorded && 'bg-red-solid text-white',
           mark.soft && 'bg-red-soft text-red-solid',
           mark.dashed && 'border border-dashed border-red-solid',
@@ -165,7 +165,7 @@ export function PeriodCalendar({
 
       <div className="mt-2 grid grid-cols-7">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="pb-1 text-center text-caption text-foreground-tertiary">
+          <div key={w} className="pb-1 text-center text-caption text-foreground-secondary">
             {w}
           </div>
         ))}
@@ -190,7 +190,7 @@ export function PeriodCalendar({
         <Legend color="var(--teal-soft)" text="排卵期" />
         <Legend color="var(--tool-soft)" ring="var(--tool-solid)" text="今天" />
       </div>
-      <div className="mt-1 text-caption text-foreground-tertiary">{OVULATION_CAPTION}</div>
+      <div className="mt-1 text-caption text-foreground-secondary">{OVULATION_CAPTION}</div>
     </div>
   )
 }

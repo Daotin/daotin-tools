@@ -36,7 +36,8 @@ export function QuitSettings() {
         />
         <Button
           className="mt-4 w-full bg-tool-solid text-white"
-          disabled={!file || busy}
+          disabled={!file}
+          loading={busy}
           onClick={onImport}
         >
           导入

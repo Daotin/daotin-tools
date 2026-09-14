@@ -21,7 +21,7 @@
   --surface-raised: oklch(1 0 0);
   --border: oklch(0.91 0.012 285);
   --foreground: oklch(0.30 0.06 268);
-  --foreground-secondary: oklch(0.55 0.04 268);
+  --foreground-secondary: oklch(0.50 0.04 268);
   --foreground-tertiary: oklch(0.70 0.03 268);
 
   /* 8 个工具颜色槽 */
@@ -81,7 +81,7 @@
   --surface-raised: oklch(0.30 0.02 280);
   --border: oklch(0.34 0.02 280);
   --foreground: oklch(0.95 0.01 280);
-  --foreground-secondary: oklch(0.70 0.02 280);
+  --foreground-secondary: oklch(0.74 0.02 280);
   --foreground-tertiary: oklch(0.55 0.02 280);
 
   /* 8 个工具颜色槽 */
@@ -147,7 +147,7 @@
   --surface-raised: oklch(0.30 0.02 280);
   --border: oklch(0.34 0.02 280);
   --foreground: oklch(0.95 0.01 280);
-  --foreground-secondary: oklch(0.70 0.02 280);
+  --foreground-secondary: oklch(0.74 0.02 280);
   --foreground-tertiary: oklch(0.55 0.02 280);
 
   /* 8 个工具颜色槽 */
@@ -289,13 +289,22 @@
   --radius-lg: 28px;
   --radius-pill: 9999px;
 
-  /* 动效 */
+  /* 动效：曲线一律 ease-out-quint（不弹跳），时长只有这三档。
+     命名跟着 Tailwind v4 的 theme 命名空间走，自动生成 ease-quint / duration-fast|base|page 工具类。 */
   --ease-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-duration-fast: 150ms;
+  --transition-duration-base: 200ms;
+  --transition-duration-page: 250ms;
+  /* 不写 duration / ease 的 transition-* 工具类也落在这套 token 上 */
+  --default-transition-duration: var(--transition-duration-fast);
+  --default-transition-timing-function: var(--ease-quint);
 }
 
 @layer base {
   html {
     color-scheme: light dark;
+    /* 列表项高度从 0 展开到 auto 要靠它；不支持的浏览器只剩淡入，不报错 */
+    interpolate-size: allow-keywords;
   }
   body {
     background: var(--background);
@@ -314,13 +323,14 @@
   }
 }
 
-/* 页面切换：横向 16px 平移 + 淡入，250ms */
+/* 页面切换：横向 12px 平移 + 淡入。react-router 的 viewTransition 只在
+   document.startViewTransition 存在时才走这条路径，不支持的浏览器直接硬切。 */
 @layer utilities {
   ::view-transition-old(root) {
-    animation: page-out 250ms var(--ease-quint) both;
+    animation: page-out var(--transition-duration-page) var(--ease-quint) both;
   }
   ::view-transition-new(root) {
-    animation: page-in 250ms var(--ease-quint) both;
+    animation: page-in var(--transition-duration-page) var(--ease-quint) both;
   }
 }
 
@@ -341,29 +351,155 @@
   }
 }
 
-/* 弹层（底部抽屉 / 对话框）进场：200ms 淡入 + 上移 */
-.sheet[open] {
-  animation: sheet-in 200ms var(--ease-quint) both;
+/* 弹层进出场：手机从下方滑入，电脑（≥1024px）0.96 缩放淡入，关闭反向播放。
+   用 transition + @starting-style + allow-discrete，<dialog> 的 display / overlay
+   变化也会等动画放完再生效，所以关闭动画不用在 JS 里延迟卸载。
+   位移用 translate / scale 独立属性，不碰上面 margin: auto 的居中。 */
+.sheet {
+  opacity: 0;
+  translate: 0 16px;
+  transition:
+    opacity var(--transition-duration-base) var(--ease-quint),
+    translate var(--transition-duration-base) var(--ease-quint),
+    scale var(--transition-duration-base) var(--ease-quint),
+    overlay var(--transition-duration-base) allow-discrete,
+    display var(--transition-duration-base) allow-discrete;
 }
 
-@keyframes sheet-in {
-  from {
+.sheet[open] {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+}
+
+@starting-style {
+  .sheet[open] {
     opacity: 0;
-    transform: translateY(16px);
+    translate: 0 16px;
+  }
+}
+
+@media (min-width: 64rem) {
+  .sheet {
+    translate: 0 0;
+    scale: 0.96;
+  }
+  @starting-style {
+    .sheet[open] {
+      translate: 0 0;
+      scale: 0.96;
+    }
+  }
+}
+
+/* 遮罩淡入淡出 */
+.sheet::backdrop {
+  opacity: 0;
+  transition:
+    opacity var(--transition-duration-base) var(--ease-quint),
+    overlay var(--transition-duration-base) allow-discrete,
+    display var(--transition-duration-base) allow-discrete;
+}
+
+.sheet[open]::backdrop {
+  opacity: 1;
+}
+
+@starting-style {
+  .sheet[open]::backdrop {
+    opacity: 0;
+  }
+}
+
+@layer utilities {
+  /* 条状提示（Toast / 内联错误 / 离线横幅 / 更新提示）：
+     不靠卸载节点，始终挂在 DOM 里，用 data-open 切换，进出场都能播完。
+     --reveal-offset 控制来向，默认从上方 8px 落下，贴底部的加 [--reveal-offset:8px]。 */
+  .reveal {
+    transition:
+      opacity var(--transition-duration-base) var(--ease-quint),
+      translate var(--transition-duration-base) var(--ease-quint),
+      display var(--transition-duration-base) allow-discrete;
+  }
+  .reveal[data-open='false'] {
+    display: none;
+    opacity: 0;
+    translate: 0 var(--reveal-offset, -8px);
+  }
+  @starting-style {
+    .reveal[data-open='true'] {
+      opacity: 0;
+      translate: 0 var(--reveal-offset, -8px);
+    }
+  }
+
+  /* 列表项新增：高度展开 + 淡入；删除：加 .item-out 反向播完再从数据里去掉 */
+  .item-in {
+    overflow: hidden;
+    transition:
+      height var(--transition-duration-base) var(--ease-quint),
+      min-height var(--transition-duration-base) var(--ease-quint),
+      opacity var(--transition-duration-base) var(--ease-quint);
+  }
+  /* min-height 也要归零：行上写了 min-h-16 的话，光把 height 收到 0 收不动 */
+  @starting-style {
+    .item-in {
+      height: 0;
+      min-height: 0;
+      opacity: 0;
+    }
+  }
+  .item-out {
+    height: 0;
+    min-height: 0;
+    opacity: 0;
+  }
+
+  /* 顶部后台刷新进度条：有缓存时的静默刷新用它提示，2px 高、贯穿整宽。
+     进出场用 base 档淡入淡出；里面那条来回扫的时长 1.2s 是循环动画，
+     不属于三档过渡时长，只此一处。 */
+  .refresh-bar {
+    opacity: 0;
+    transition: opacity var(--transition-duration-base) var(--ease-quint);
+  }
+  .refresh-bar[data-open='true'] {
+    opacity: 1;
+  }
+  .refresh-bar > i {
+    animation: refresh-sweep 1.2s var(--ease-quint) infinite;
+  }
+
+  /* 骨架屏换成真内容时淡入，不硬切 */
+  .fade-in {
+    transition: opacity var(--transition-duration-base) var(--ease-quint);
+  }
+  @starting-style {
+    .fade-in {
+      opacity: 0;
+    }
+  }
+}
+
+@keyframes refresh-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(350%);
   }
 }
 
 @keyframes page-out {
   to {
     opacity: 0;
-    transform: translateX(-16px);
+    transform: translateX(-12px);
   }
 }
 
 @keyframes page-in {
   from {
     opacity: 0;
-    transform: translateX(16px);
+    transform: translateX(12px);
   }
 }
 
@@ -371,9 +507,17 @@
   *,
   *::before,
   *::after,
+  *::backdrop,
   ::view-transition-old(*),
   ::view-transition-new(*) {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* 上面把动画时长归零后，来回扫的那一段会停在屏幕外，进度条等于看不见；
+     这里干脆不播动画，改成整条常亮，请求期间一直显示。 */
+  .refresh-bar > i {
+    animation-name: none;
+    width: 100%;
   }
 }

@@ -7,7 +7,7 @@ import type { Tool } from '@/tools'
 /** 没有摘要数字时数字位置显示的"打开"。 */
 export function ToolCardOpen() {
   return (
-    <div className="mt-1 font-rounded text-stat font-bold text-foreground-tertiary">打开</div>
+    <div className="mt-1 font-rounded text-stat font-bold text-foreground-secondary">打开</div>
   )
 }
 
@@ -38,7 +38,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
           '--tool-soft': `var(--${tool.color}-soft)`,
         } as React.CSSProperties
       }
-      className="relative flex h-full flex-col rounded-md bg-surface p-5 transition-transform active:scale-[0.98]"
+      className="relative flex h-full flex-col rounded-md bg-surface p-5 transition-transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
     >
       <IconBadge icon={tool.icon} size={44} color={tool.color} />
       <div className="mt-2 font-rounded text-body-sm font-semibold text-foreground-secondary">

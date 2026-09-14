@@ -14,7 +14,8 @@ import { PeriodCalendar } from './PeriodCalendar'
 import { PeriodEditor, validate } from './PeriodEditor'
 import type { PeriodInput } from './data'
 import { createPeriod, deletePeriod, updatePeriod, usePeriods } from './data'
-import type { Cycle, Prediction } from './predict'
+import { cn } from '@/lib/cn'
+import type { Cycle, Prediction, Upcoming } from './predict'
 import {
   backtestText,
   formatMonthDay,
@@ -27,10 +28,17 @@ import {
   toDateString,
 } from './predict'
 
-/** "9 月 3 日 – 9 月 7 日"，没填结束日是"9 月 3 日 – 未结束"。 */
-function rangeText(period: Period) {
+/** "9 月 3 日 – 9 月 7 日"；没填结束日是"未结束"，超期太久算忘了填。 */
+function rangeText(period: Period, forgot = false) {
   const start = formatMonthDay(parseDate(period.start_date))
-  return `${start} – ${period.end_date ? formatMonthDay(parseDate(period.end_date)) : '未结束'}`
+  if (period.end_date) return `${start} – ${formatMonthDay(parseDate(period.end_date))}`
+  return `${start} – ${forgot ? '未填结束日' : '未结束'}`
+}
+
+/** 事件小圆点的颜色，和日历图例一致。 */
+const DOT: Record<Upcoming['kind'], string> = {
+  period: 'bg-red-solid',
+  ovulation: 'bg-teal-solid',
 }
 
 /** 首次使用：没有任何记录时代替 Hero Card。 */
@@ -53,7 +61,8 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
       />
       <Button
         className="mt-3 w-full bg-tool-solid text-white"
-        disabled={!date || busy}
+        disabled={!date}
+        loading={busy}
         onClick={async () => {
           setBusy(true)
           try {
@@ -69,24 +78,58 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
   )
 }
 
-function Hero({ periods, prediction }: { periods: Period[]; prediction: Prediction }) {
+function Hero({
+  periods,
+  prediction,
+  onFix,
+}: {
+  periods: Period[]
+  prediction: Prediction
+  /** 点"还没填结束日"那行时打开该条的编辑抽屉 */
+  onFix: (period: Period) => void
+}) {
   const status = statusText(periods, prediction)
   if (!status) return null
+  const forgot = prediction.cycles.find((c) => c.forgot)?.period
   return (
     <HeroCard>
       <IconBadge icon={Droplet} size={56} />
       <div className="mt-4 text-caption text-foreground-secondary">{status.caption}</div>
-      <div className="flex items-baseline gap-1">
-        <span className="font-rounded text-display">{status.value}</span>
-        <span className="text-caption text-foreground-secondary">{status.unit}</span>
-      </div>
-      <div className="mt-0.5 text-heading">{status.title}</div>
-      {status.summary === '排卵期中' && (
-        <div className="mt-0.5 text-caption text-foreground-tertiary">{OVULATION_CAPTION}</div>
+      {status.value === 0 ? (
+        <div className="font-rounded text-display">今天</div>
+      ) : (
+        <div className="flex items-baseline gap-1">
+          <span className="font-rounded text-display">{status.value}</span>
+          <span className="text-caption text-foreground-secondary">{status.unit}</span>
+        </div>
       )}
-      <div className="mt-1 text-caption text-foreground-secondary">
-        {backtestText(prediction)}
-      </div>
+      <div className="mt-0.5 text-heading">{status.title}</div>
+
+      {status.rest.length > 0 && (
+        <div className="mt-3 flex flex-col gap-1.5 text-caption text-foreground-secondary">
+          {status.rest.map((event) => (
+            <div key={event.title} className="flex items-center gap-1.5">
+              <i className={cn('size-2 shrink-0 rounded-pill', DOT[event.kind])} />
+              <span>{event.title}</span>
+              <span>{formatMonthDay(event.date)}</span>
+              <span>· {event.days === 0 ? '今天' : `${event.days} 天后`}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {forgot && (
+        <button
+          type="button"
+          className="mt-2 text-left text-caption text-tool-solid"
+          onClick={() => onFix(forgot)}
+        >
+          {formatMonthDay(parseDate(forgot.start_date))}那次还没填结束日
+        </button>
+      )}
+
+      <div className="mt-3 text-caption text-foreground-secondary">{backtestText(prediction)}</div>
+      <div className="mt-0.5 text-caption text-foreground-secondary">{OVULATION_CAPTION}</div>
     </HeroCard>
   )
 }
@@ -96,10 +139,15 @@ function History({ cycles, onPick }: { cycles: Cycle[]; onPick: (period: Period)
     <div className="rounded-md bg-surface px-5 py-4">
       <div className="text-heading">历史</div>
       {cycles.map((cycle) => {
-        const { period, length, counted } = cycle
+        const { period, length, counted, forgot } = cycle
         const days = period.end_date
           ? differenceInCalendarDays(parseDate(period.end_date), parseDate(period.start_date)) + 1
           : null
+        // 忘填的那条不写"进行中"，只剩周期信息
+        const parts = [
+          days ? `${days} 天` : forgot ? null : '进行中',
+          length !== null ? `周期 ${length} 天` : null,
+        ].filter(Boolean)
         return (
           <button
             key={period.id}
@@ -109,15 +157,20 @@ function History({ cycles, onPick }: { cycles: Cycle[]; onPick: (period: Period)
           >
             <IconBadge icon={Droplet} size={32} variant="soft" />
             <div className="min-w-0 flex-1">
-              <div className="truncate text-body">{rangeText(period)}</div>
+              <div className="truncate text-body">{rangeText(period, forgot)}</div>
               <div className="truncate text-caption text-foreground-secondary">
-                {days ? `${days} 天` : '进行中'}
-                {length !== null && ` · 周期 ${length} 天`}
+                {parts.join(' · ')}
                 {length !== null && !counted && (
-                  <span className="text-foreground-tertiary"> 未参与估算</span>
+                  <span className="text-foreground-secondary"> 未参与估算</span>
                 )}
               </div>
             </div>
+            {/* 整行本来就是打开编辑抽屉的按钮，这里只做视觉提示，不再嵌一个按钮 */}
+            {forgot && (
+              <span className="shrink-0 rounded-pill bg-tool-soft px-2.5 py-1 text-caption text-tool-solid">
+                补填
+              </span>
+            )}
           </button>
         )
       })}
@@ -131,7 +184,8 @@ export function PeriodPage() {
   const [selected, setSelected] = useState<Date | null>(null)
   const [editing, setEditing] = useState<Period | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const [busy, setBusy] = useState(false)
+  /** 哪个按钮在转圈：抽屉里几个按钮各转各的 */
+  const [busy, setBusy] = useState('')
 
   const list = periods ?? []
   const prediction = predict(list)
@@ -142,8 +196,8 @@ export function PeriodPage() {
    * 假数据模式下不写数据库，只走一遍 UI。
    * 失败时 toast 并返回 false，调用方据此不关抽屉、不清状态。
    */
-  async function write(action: () => Promise<void>): Promise<boolean> {
-    setBusy(true)
+  async function write(key: string, action: () => Promise<void>): Promise<boolean> {
+    setBusy(key)
     try {
       if (!mock) await action()
       await reload()
@@ -152,7 +206,7 @@ export function PeriodPage() {
       toast(e instanceof Error ? e.message : '保存失败，请重试')
       return false
     } finally {
-      setBusy(false)
+      setBusy('')
     }
   }
 
@@ -176,7 +230,7 @@ export function PeriodPage() {
       toast(message)
       return
     }
-    if (!(await write(() => createPeriod(input)))) return
+    if (!(await write('start', () => createPeriod(input)))) return
     setSelected(null)
     toast('已记录')
   }
@@ -193,11 +247,11 @@ export function PeriodPage() {
         <div className="flex flex-col xl:flex-row xl:items-start xl:gap-6">
           <div className="flex flex-col gap-3 xl:min-w-0 xl:flex-1">
             {prediction ? (
-              <Hero periods={list} prediction={prediction} />
+              <Hero periods={list} prediction={prediction} onFix={setEditing} />
             ) : (
               <Guide
                 onSave={async (date) => {
-                  if (await write(() => createPeriod({ start_date: date, end_date: null }))) {
+                  if (await write('start', () => createPeriod({ start_date: date, end_date: null }))) {
                     toast('已记录')
                   }
                 }}
@@ -241,9 +295,10 @@ export function PeriodPage() {
               {!owner.end_date && selected > parseDate(owner.start_date) && (
                 <Button
                   className="mt-5 w-full bg-tool-solid text-white"
-                  disabled={busy || future}
+                  disabled={!!busy || future}
+                  loading={busy === 'end'}
                   onClick={async () => {
-                    const ok = await write(() =>
+                    const ok = await write('end', () =>
                       updatePeriod(owner.id, {
                         start_date: owner.start_date,
                         end_date: toDateString(selected),
@@ -270,13 +325,14 @@ export function PeriodPage() {
               <Button
                 variant="destructive"
                 className="mt-3 w-full"
-                disabled={busy}
+                disabled={!!busy}
+                loading={busy === 'delete'}
                 onClick={async () => {
                   if (!confirmDelete) {
                     setConfirmDelete(true)
                     return
                   }
-                  if (!(await write(() => deletePeriod(owner.id)))) return
+                  if (!(await write('delete', () => deletePeriod(owner.id)))) return
                   setSelected(null)
                   toast('已删除')
                 }}
@@ -288,17 +344,19 @@ export function PeriodPage() {
             <>
               <Button
                 className="mt-5 w-full bg-tool-solid text-white"
-                disabled={busy || future}
+                disabled={!!busy || future}
+                loading={busy === 'start'}
                 onClick={() => markStart(selected)}
               >
                 标记为经期开始
               </Button>
               <Button
                 className="mt-3 w-full bg-tool-soft text-tool-solid"
-                disabled={busy || future || !openRecord}
+                disabled={!!busy || future || !openRecord}
+                loading={busy === 'end'}
                 onClick={async () => {
                   if (!openRecord) return
-                  const ok = await write(() =>
+                  const ok = await write('end', () =>
                     updatePeriod(openRecord.id, {
                       start_date: openRecord.start_date,
                       end_date: toDateString(selected),
@@ -327,8 +385,9 @@ export function PeriodPage() {
           period={editing}
           others={list.filter((p) => p.id !== editing.id)}
           onClose={() => setEditing(null)}
-          onSave={(input) => write(() => updatePeriod(editing.id, input))}
-          onDelete={() => write(() => deletePeriod(editing.id))}
+          /* 编辑抽屉的两个按钮由 PeriodEditor 自己管转圈，这里的 key 不对应页面上的按钮 */
+          onSave={(input) => write('editor', () => updatePeriod(editing.id, input))}
+          onDelete={() => write('editor', () => deletePeriod(editing.id))}
         />
       )}
     </>

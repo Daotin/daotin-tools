@@ -28,6 +28,7 @@ const card = 'rounded-md bg-surface px-5 py-1'
 export function Account() {
   const { session } = useSession()
   const [exporting, setExporting] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [error, setError] = useState('')
 
   async function onExport() {
@@ -58,7 +59,7 @@ export function Account() {
           onClick={exporting ? undefined : onExport}
           trailing={
             exporting ? (
-              <LoaderCircle className="size-[18px] animate-spin text-foreground-tertiary" />
+              <LoaderCircle className="size-[18px] animate-spin text-foreground-secondary" />
             ) : undefined
           }
         />
@@ -69,7 +70,16 @@ export function Account() {
       <Button
         variant="destructive"
         className="mt-8 w-full"
-        onClick={() => supabase.auth.signOut()}
+        loading={signingOut}
+        onClick={async () => {
+          setSigningOut(true)
+          // 成功时会跳回登录页，这个组件跟着卸载，不用再收 signingOut
+          try {
+            await supabase.auth.signOut()
+          } catch {
+            setSigningOut(false)
+          }
+        }}
       >
         退出登录
       </Button>
@@ -131,8 +141,8 @@ export function AccountPassword() {
           className={`mt-1 ${cardInput}`}
         />
         {error && <p className="mt-4 text-caption text-red-solid">{error}</p>}
-        <Button type="submit" disabled={saving} className="mt-5 w-full">
-          {saving ? <LoaderCircle className="size-[18px] animate-spin" /> : '保存'}
+        <Button type="submit" loading={saving} className="mt-5 w-full">
+          保存
         </Button>
       </form>
     </>
@@ -193,11 +203,12 @@ export function AccountRestore() {
         </p>
         <Button
           type="button"
-          disabled={!file || running}
+          disabled={!file}
+          loading={running}
           onClick={onStart}
           className="mt-5 w-full"
         >
-          {running ? <LoaderCircle className="size-[18px] animate-spin" /> : '开始恢复'}
+          开始恢复
         </Button>
 
         {progress && (

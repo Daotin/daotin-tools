@@ -9,6 +9,7 @@ export function HeroCard({
   children: React.ReactNode
 }) {
   return (
-    <div className={cn('rounded-md bg-tool-soft p-6', className)}>{children}</div>
+    /* fade-in：骨架屏换成真内容时淡入一次，不硬切 */
+    <div className={cn('fade-in rounded-md bg-tool-soft p-6', className)}>{children}</div>
   )
 }

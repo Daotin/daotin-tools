@@ -125,6 +125,7 @@ description: 个人小工具站的全站通用视觉规则。浅紫灰底、白�
 - 标题和数字一律左对齐。唯一例外是空状态的说明文字可以居中。
 - 同一屏最多三档字号。
 - 层级靠字号和字重拉开，不靠颜色。辅助文字用 `--foreground-secondary`，不再更淡。
+- **`--foreground-tertiary` 只给禁用态和不可读也无妨的占位**，不得用于任何需要读的内容（星期表头、未来日期、说明文字、图标按钮一律用 secondary）。它在白卡上只有 2.7 的对比度，达不到 WCAG AA。
 - 主数字的单位（"天"、"元"、"L"）用 `caption` 档，放在数字右下基线，颜色 `--foreground-secondary`。
 
 ### Named Rules
@@ -208,19 +209,58 @@ description: 个人小工具站的全站通用视觉规则。浅紫灰底、白�
 ### Feedback
 
 - 加载：骨架屏，形状对应即将出现的卡片；不在内容中央放旋转图标。
+- **按钮 loading：** 凡是点了会发请求的按钮，请求期间一律给 `Button` 传 `loading`（不要只传 `disabled`）：按钮禁用、带 `aria-busy`、文字换成 18px 圆形转圈，宽度不变。同屏多个写操作各自一份 busy 状态，各转各的（导出转圈时恢复不能跟着转）。不是 `Button` 组件的按钮（站点栏圆形 ✓、列表行内的"删除"）自己把图标或文字换成同尺寸的转圈，尺寸同样不变。
+- **顶部刷新进度条：** 有缓存的页面在后台静默刷新时，站点顶部亮一条 2px 高、贯穿整宽的 `--tool-solid` 细条（里面一段来回扫），请求结束淡出。首次加载归骨架屏管，不出这条；假数据模式（`?mock=1`）不发请求，也不出。计数在 `src/lib/cache.ts` 里用 module 级订阅器汇总，`AppShell` 订阅。
 - 空状态：一张 `--tool-soft` 底的卡，里面 56px 图标底、一行标题、一句"下一步做什么"、一个 primary 按钮。文字居中，是全站唯一允许居中的文字。
 - 错误：内联，在出错的位置旁边，red solid 字。网络错误在页面顶部一条 red soft 底的横幅，可关闭。
 - 成功：轻量 toast，`--foreground` 底白字，胶囊形，底部弹出，2 秒消失。
 
 ## 6. Motion
 
-- 时长：状态切换 150ms，进出场 200ms，页面切换 250ms。曲线一律 `cubic-bezier(0.22, 1, 0.36, 1)`（ease-out-quint）。不弹跳。
-- 页面切换用 View Transitions API，工具页之间横向平移 16px 加淡入，首页与工具页之间同样处理。
-- 分段切换的选中块滑动 200ms。
+全站动效只有三档时长一条曲线，写在 `src/index.css` 的 `@theme` 里，别处不再出现裸写的毫秒数和 `cubic-bezier()`。
+
+### Token
+
+| 变量 | 值 | 生成的工具类 | 用在哪 |
+| --- | --- | --- | --- |
+| `--ease-quint` | `cubic-bezier(0.22, 1, 0.36, 1)` | `ease-quint` | 所有动效，不弹跳 |
+| `--transition-duration-fast` | 150ms | `duration-fast` | 状态切换：按钮 hover / active、卡片上浮、导航当前项、图标按钮 |
+| `--transition-duration-base` | 200ms | `duration-base` | 进出场：弹层、分段滑块、Toast、列表项、骨架屏换内容 |
+| `--transition-duration-page` | 250ms | `duration-page` | 页面切换（View Transitions） |
+
+`--default-transition-duration` 和 `--default-transition-timing-function` 也指向上面两个 token，
+所以只写 `transition-colors` / `transition-transform`、不写 duration 和 ease 时，默认就是 150ms + quint。
+只有需要 200ms 的地方才补 `duration-base ease-quint`。
+
+### 各处用哪档
+
+- 页面切换：View Transitions API，`::view-transition-old/new(root)` 淡入淡出 + 横向 12px 平移，250ms，不区分前进后退。浏览器没有 `document.startViewTransition` 时直接硬切。
+- 弹层（`.sheet`）：手机从下方 16px 滑入 + 遮罩淡入，电脑 0.96 → 1 缩放 + 淡入，200ms。
+- 分段切换（`Segmented`）：选中块是一块绝对定位的滑块，用 `transform: translateX()` 在选项间滑动，200ms；文字颜色同步过渡。
+- 首页卡片：hover 上浮 2px，按下 0.98 缩放，150ms。不做阴影、不做放大。
+- 左侧导航：当前项白底和 hover 底色都走 `transition-colors`，150ms。
+- 按钮：`transition-all` + 默认 150ms，hover 降亮度，按下 0.97 缩放。
+- Toast / 内联错误 / 离线横幅 / 更新提示：`.reveal` 类，200ms 淡入 + 8px 位移，进出场都播。
+- 列表项（倒数日列表、戒烟当天记录）：`.item-in` 高度从 0 展开 + 淡入 200ms；删除加 `.item-out` 反向，播完再从数据里去掉。
+- 骨架屏换成真内容：`.fade-in`，200ms 淡入。
 - 计时器数字每秒直接替换，不做滚动动画；等宽数字保证不抖。
-- 列表项新增：高度从 0 展开加淡入 200ms；删除：反向。
-- `prefers-reduced-motion: reduce` 时所有过渡时长归零。
-- 不做页面加载编排、不做装饰性动画、不做悬停放大。
+
+### 退场动画怎么做
+
+两种，按节点是不是 `<dialog>` 分：
+
+- `<dialog>`（`.sheet`）用 `transition` + `@starting-style` + `transition-behavior: allow-discrete`，把 `display` 和 `overlay` 也列进 transition。关闭时浏览器会等动画放完再收掉，不用在 JS 里加 closing 状态延迟卸载。
+- 普通节点（`.reveal`）不卸载：节点常驻 DOM，用 `data-open="true|false"` 切换，`display` 同样走 `allow-discrete`。条件 `return null` 会让退场动画没机会播，所以这类组件一律不要早退。
+- 列表项删除是例外：行本来就要从数据里去掉，删除后先加 `.item-out` 等 200ms 再 reload。
+
+`prefers-reduced-motion: reduce` 下一条全局规则把 `*`、`*::before`、`*::after`、`*::backdrop` 和 view-transition 伪元素的 `animation-duration` / `transition-duration` 全部归零，新加动效自动被覆盖。
+
+### 禁止
+
+- 不弹跳（不用 `cubic-bezier` 带回弹的曲线，不用 spring）。
+- 不做装饰性动画、不做页面加载编排、不做悬停放大。
+- 不引动画库（framer-motion / GSAP 之类），CSS 够用。
+- 不在组件里写 `duration-[220ms]`、`ease-[cubic-bezier(...)]` 这种一次性值。
 
 ## 7. Do's and Don'ts
 

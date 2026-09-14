@@ -21,7 +21,7 @@ export function ListRow({ icon, color, label, trailing, to, onClick }: Props) {
       <IconBadge icon={icon} size={32} color={color} />
       <span className="flex-1 text-body">{label}</span>
       {trailing}
-      {(to || onClick) && <ChevronRight className="size-5 text-foreground-tertiary" />}
+      {(to || onClick) && <ChevronRight className="size-5 text-foreground-secondary" />}
     </>
   )
   const className = 'flex h-15 w-full items-center gap-3 text-left'

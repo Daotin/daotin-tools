@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, LayoutGrid, Monitor, Moon, Settings, Sun, User, X } from 'lucide-react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
@@ -6,6 +6,7 @@ import { cn } from '@/lib/cn'
 import { ErrorBoundary } from './ErrorBoundary'
 import { IconBadge } from './IconBadge'
 import { PageSkeleton } from './Skeleton'
+import { isRefreshing, subscribeRefresh } from '@/lib/cache'
 import { useSession } from '@/lib/auth'
 import { tools } from '@/tools'
 
@@ -13,7 +14,7 @@ const SITE_NAME = 'Daotin 的工具箱'
 
 /** 站点栏的 40px 白底圆形 ghost 按钮样式。有色按钮在此基础上覆盖 bg / text。 */
 export const roundButton =
-  'flex size-10 shrink-0 items-center justify-center rounded-pill bg-surface text-foreground transition-transform active:scale-[0.97] [&_svg]:size-5'
+  'flex size-10 shrink-0 items-center justify-center rounded-pill bg-surface text-foreground transition-[transform,filter] hover:brightness-95 active:scale-[0.97] [&_svg]:size-5'
 
 const THEMES = ['system', 'light', 'dark'] as const
 const THEME_ICON = { system: Monitor, light: Sun, dark: Moon }
@@ -106,8 +107,8 @@ function NavItem({
       viewTransition
       className={({ isActive }) =>
         cn(
-          'flex h-12 items-center gap-3 rounded-sm px-3 font-rounded text-body-sm font-semibold',
-          isActive && 'bg-surface',
+          'flex h-12 items-center gap-3 rounded-sm px-3 font-rounded text-body-sm font-semibold transition-colors',
+          isActive ? 'bg-surface' : 'hover:bg-surface/50',
         )
       }
     >
@@ -149,13 +150,33 @@ function OfflineBanner() {
     }
   }, [])
 
-  if (!offline || closed) return null
   return (
-    <div className="flex items-center gap-2 bg-orange-soft px-4 py-2 text-caption text-orange-solid lg:px-8">
+    <div
+      data-open={offline && !closed}
+      className="reveal flex items-center gap-2 bg-orange-soft px-4 py-2 text-caption text-orange-solid lg:px-8"
+    >
       <span className="flex-1">当前离线，显示的是上次数据</span>
       <button type="button" aria-label="关闭" onClick={() => setClosed(true)}>
         <X className="size-4" />
       </button>
+    </div>
+  )
+}
+
+/**
+ * 顶部后台刷新进度条：有缓存的页面静默刷新时亮起，否则用户不知道数据在更新。
+ * 节点常驻，只切 data-open，这样结束时能淡出（假数据模式不发请求，计数一直是 0）。
+ */
+function RefreshBar({ color }: { color?: string }) {
+  const refreshing = useSyncExternalStore(subscribeRefresh, isRefreshing)
+  return (
+    <div
+      aria-hidden
+      data-open={refreshing}
+      className="refresh-bar pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden"
+      style={color ? ({ '--tool-solid': `var(--${color}-solid)` } as React.CSSProperties) : undefined}
+    >
+      <i className="block h-full w-1/3 bg-tool-solid" />
     </div>
   )
 }
@@ -175,6 +196,7 @@ export function AppShell() {
 
   return (
     <div className="flex min-h-dvh">
+      <RefreshBar color={tool?.color} />
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <OfflineBanner />
@@ -187,7 +209,7 @@ export function AppShell() {
             <button
               type="button"
               aria-label="返回"
-              onClick={() => navigate({ pathname: parent, search })}
+              onClick={() => navigate({ pathname: parent, search }, { viewTransition: true })}
               className={cn(roundButton, !deep && 'lg:hidden')}
             >
               <ChevronLeft />
@@ -195,7 +217,7 @@ export function AppShell() {
           )}
           {/* 右操作位：工具页是设置齿轮，其余页面手机上是账号（电脑端账号在左侧导航） */}
           {settingsPath && pathname !== settingsPath ? (
-            <Link to={settingsPath} aria-label="设置" className={cn(roundButton, 'ml-auto')}>
+            <Link to={settingsPath} viewTransition aria-label="设置" className={cn(roundButton, 'ml-auto')}>
               <Settings />
             </Link>
           ) : tool ? (
@@ -213,7 +235,7 @@ export function AppShell() {
             />
           ) : (
             <div className="ml-auto flex gap-2 lg:hidden">
-              <Link to="/account" aria-label="账号" className={roundButton}>
+              <Link to="/account" viewTransition aria-label="账号" className={roundButton}>
                 <User />
               </Link>
               <ThemeToggle />

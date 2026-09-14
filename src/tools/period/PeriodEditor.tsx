@@ -55,7 +55,8 @@ export function PeriodEditor({
   const [start, setStart] = useState(period.start_date)
   const [end, setEnd] = useState(period.end_date ?? '')
   const [open, setOpen] = useState(period.end_date === null)
-  const [busy, setBusy] = useState(false)
+  /** 哪个按钮在转圈：保存和删除各转各的 */
+  const [busy, setBusy] = useState<'' | 'save' | 'delete'>('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   const input: PeriodInput = { start_date: start, end_date: open ? null : end || null }
@@ -63,24 +64,24 @@ export function PeriodEditor({
 
   async function save() {
     if (error) return
-    setBusy(true)
+    setBusy('save')
     try {
       if (!(await onSave(input))) return
       toast('已保存')
       onClose()
     } finally {
-      setBusy(false)
+      setBusy('')
     }
   }
 
   async function remove() {
-    setBusy(true)
+    setBusy('delete')
     try {
       if (!(await onDelete())) return
       toast('已删除')
       onClose()
     } finally {
-      setBusy(false)
+      setBusy('')
     }
   }
 
@@ -121,7 +122,8 @@ export function PeriodEditor({
 
       <Button
         className="mt-4 w-full bg-tool-solid text-white"
-        disabled={!!error || busy}
+        disabled={!!error || !!busy}
+        loading={busy === 'save'}
         onClick={save}
       >
         保存
@@ -130,7 +132,8 @@ export function PeriodEditor({
       <Button
         variant="destructive"
         className="mt-3 w-full"
-        disabled={busy}
+        disabled={!!busy}
+        loading={busy === 'delete'}
         onClick={() => (confirmDelete ? remove() : setConfirmDelete(true))}
       >
         {confirmDelete ? '确定删除？' : '删除'}

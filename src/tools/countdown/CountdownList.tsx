@@ -64,7 +64,7 @@ function Row({ entry, search }: { entry: Entry; search: string }) {
     <Link
       to={{ pathname: `/countdown/${event.id}`, search }}
       viewTransition
-      className="flex min-h-16 items-center gap-3 py-2"
+      className="item-in flex min-h-16 items-center gap-3 py-2"
     >
       <IconBadge icon={eventIcon(event)} size={32} variant="soft" />
       <div className="min-w-0 flex-1">

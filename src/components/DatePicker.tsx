@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Solar } from 'lunar-typescript'
 import { cn } from '@/lib/cn'
 import { parseDate, toDateString } from '@/lib/date'
@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button'
 /* eslint-disable react-refresh/only-export-components */
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
+
+/** 年月快选的年份范围：1900 到今年 + 30，一百多项直接渲染，不做虚拟滚动。 */
+const YEARS = Array.from(
+  { length: new Date().getFullYear() + 31 - 1900 },
+  (_, i) => 1900 + i,
+)
+const MONTHS = Array.from({ length: 12 }, (_, i) => i)
 
 const lunarOf = (date: Date) =>
   Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate()).getLunar()
@@ -91,6 +98,34 @@ function Day({
   )
 }
 
+/** 年月快选列表里的一项。data-active 给"打开时滚到选中项"用。 */
+function YmItem({
+  label,
+  active,
+  disabled,
+  onSelect,
+}: {
+  label: string
+  active: boolean
+  disabled: boolean
+  onSelect: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      data-active={active || undefined}
+      onClick={onSelect}
+      className={cn(
+        'flex h-10 w-full items-center justify-center rounded-sm font-rounded text-body tabular-nums disabled:opacity-35',
+        active && 'bg-tool-soft font-semibold text-tool-solid',
+      )}
+    >
+      {label}
+    </button>
+  )
+}
+
 /**
  * 日期选择器：按钮样式的输入框 + 弹层月历。
  * showLunar 时输入框和每个格子都带农历（用原生 <dialog>，Esc 关闭、遮罩点击关闭）。
@@ -112,7 +147,10 @@ export function DatePicker({
   className?: string
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const ymRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
+  /** true 时弹层里显示年月快选，false 显示月历 */
+  const [picking, setPicking] = useState(false)
   const [draft, setDraft] = useState(value)
   const [anchor, setAnchor] = useState(() => parseDate(value))
 
@@ -123,12 +161,26 @@ export function DatePicker({
     if (!open && dialog.open) dialog.close()
   }, [open])
 
+  // 切到年月视图时把选中的年、月滚到列表中间（只动列表自己的 scrollTop）
+  useEffect(() => {
+    if (!picking) return
+    ymRef.current?.querySelectorAll<HTMLElement>('[data-active]').forEach((el) => {
+      const box = el.parentElement
+      if (box) box.scrollTop = el.offsetTop - (box.clientHeight - el.offsetHeight) / 2
+    })
+  }, [picking])
+
   const selected = parseDate(draft)
   const todayString = toDateString(new Date())
+
+  /** 整段 [from, to] 都落在 min/max 之外就禁用 */
+  const blocked = (from: Date, to: Date) =>
+    (min !== undefined && toDateString(to) < min) || (max !== undefined && toDateString(from) > max)
 
   function start() {
     setDraft(value)
     setAnchor(parseDate(value))
+    setPicking(false)
     setOpen(true)
   }
 
@@ -139,6 +191,7 @@ export function DatePicker({
   function jumpToday() {
     setDraft(todayString)
     setAnchor(new Date())
+    setPicking(false)
   }
 
   function confirm() {
@@ -170,6 +223,13 @@ export function DatePicker({
       <dialog
         ref={ref}
         onClose={() => setOpen(false)}
+        onCancel={(e) => {
+          // 年月视图下 Esc 先退回月历，再按才关弹层
+          if (picking) {
+            e.preventDefault()
+            setPicking(false)
+          }
+        }}
         onClick={(e) => {
           if (e.target === ref.current) setOpen(false)
         }}
@@ -183,18 +243,35 @@ export function DatePicker({
             type="button"
             aria-label="上个月"
             onClick={() => shift(-1)}
-            className="flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary"
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary',
+              picking && 'invisible',
+            )}
           >
             <ChevronLeft className="size-5" />
           </button>
-          <span className="shrink-0 font-rounded text-body font-semibold whitespace-nowrap">
+          <button
+            type="button"
+            aria-expanded={picking}
+            onClick={() => setPicking(!picking)}
+            className="flex shrink-0 items-center gap-1 font-rounded text-body font-semibold whitespace-nowrap"
+          >
             {anchor.getFullYear()} 年 {anchor.getMonth() + 1} 月
-          </span>
+            <ChevronDown
+              className={cn(
+                'size-4 text-foreground-secondary transition-transform duration-200 ease-out',
+                picking && 'rotate-180',
+              )}
+            />
+          </button>
           <button
             type="button"
             aria-label="下个月"
             onClick={() => shift(1)}
-            className="flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary"
+            className={cn(
+              'flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary',
+              picking && 'invisible',
+            )}
           >
             <ChevronRight className="size-5" />
           </button>
@@ -206,30 +283,74 @@ export function DatePicker({
           </div>
         )}
 
-        <div className="mt-2 grid grid-cols-7">
-          {WEEKDAYS.map((w) => (
-            <div key={w} className="pb-1 text-center text-caption text-foreground-tertiary">
-              {w}
+        {/* 月历和年月快选叠在同一格，互相淡入淡出；隐藏的那层 inert，键盘聚焦不到 */}
+        <div className="mt-2 grid *:col-start-1 *:row-start-1">
+          <div
+            inert={picking}
+            className={cn(
+              'grid grid-cols-7 transition-opacity duration-200 ease-out',
+              picking && 'opacity-0',
+            )}
+          >
+            {WEEKDAYS.map((w) => (
+              <div key={w} className="pb-1 text-center text-caption text-foreground-secondary">
+                {w}
+              </div>
+            ))}
+            {monthCells(anchor).map((date, i) =>
+              date ? (
+                <Day
+                  key={i}
+                  date={date}
+                  selected={toDateString(date) === draft}
+                  today={toDateString(date) === todayString}
+                  showLunar={showLunar}
+                  disabled={blocked(date, date)}
+                  onSelect={() => pick(date)}
+                />
+              ) : (
+                <i key={i} />
+              ),
+            )}
+          </div>
+
+          <div
+            ref={ymRef}
+            inert={!picking}
+            className={cn(
+              'grid grid-cols-2 gap-3 transition-opacity duration-200 ease-out',
+              !picking && 'opacity-0',
+            )}
+          >
+            <div className="relative h-72 overflow-y-auto">
+              {YEARS.map((y) => (
+                <YmItem
+                  key={y}
+                  label={`${y}`}
+                  active={y === anchor.getFullYear()}
+                  disabled={blocked(new Date(y, 0, 1), new Date(y, 11, 31))}
+                  onSelect={() => setAnchor(new Date(y, anchor.getMonth(), 1))}
+                />
+              ))}
             </div>
-          ))}
-          {monthCells(anchor).map((date, i) =>
-            date ? (
-              <Day
-                key={i}
-                date={date}
-                selected={toDateString(date) === draft}
-                today={toDateString(date) === todayString}
-                showLunar={showLunar}
-                disabled={
-                  (min !== undefined && toDateString(date) < min) ||
-                  (max !== undefined && toDateString(date) > max)
-                }
-                onSelect={() => pick(date)}
-              />
-            ) : (
-              <i key={i} />
-            ),
-          )}
+            <div className="relative h-72 overflow-y-auto">
+              {MONTHS.map((m) => (
+                <YmItem
+                  key={m}
+                  label={`${m + 1} 月`}
+                  active={m === anchor.getMonth()}
+                  disabled={blocked(
+                    new Date(anchor.getFullYear(), m, 1),
+                    new Date(anchor.getFullYear(), m + 1, 0),
+                  )}
+                  onSelect={() => {
+                    setAnchor(new Date(anchor.getFullYear(), m, 1))
+                    setPicking(false)
+                  }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="mt-3 flex items-center justify-between">

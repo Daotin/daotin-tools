@@ -7,7 +7,7 @@ import {
   isSameDay,
   startOfWeek,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, CigaretteOff, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CigaretteOff, LoaderCircle, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatMonthDay } from '@/lib/date'
 import { IconBadge } from '@/components/IconBadge'
@@ -76,7 +76,7 @@ function Day({
       <span
         className={cn(
           'flex size-8 items-center justify-center rounded-pill font-rounded text-body-sm font-semibold',
-          future && 'text-foreground-tertiary',
+          future && 'text-foreground-secondary',
           today
             ? 'bg-tool-solid text-white'
             : count > 0 && 'bg-red-soft text-red-solid',
@@ -102,6 +102,9 @@ export function CalendarPanel() {
   const [anchor, setAnchor] = useState(() => new Date())
   const [selected, setSelected] = useState<Date | null>(() => new Date())
   const [confirmId, setConfirmId] = useState('')
+  /** 正在请求删除的那条（转圈）；删完才轮到 removingId 播退场动画 */
+  const [deletingId, setDeletingId] = useState('')
+  const [removingId, setRemovingId] = useState('')
 
   const byDay = groupByDay(relapses)
   const countOf = (d: Date) => byDay.get(dayKey(d))?.length ?? 0
@@ -152,14 +155,21 @@ export function CalendarPanel() {
   const dayRecords = selected ? (byDay.get(dayKey(selected)) ?? []) : []
 
   async function onDelete(id: string) {
+    setDeletingId(id)
     try {
       if (!mock) await deleteRelapse(id)
     } catch (e) {
       toast(e instanceof Error ? e.message : '保存失败，请重试')
       return
+    } finally {
+      setDeletingId('')
     }
     setConfirmId('')
+    // 先让这一行播完退场动画再刷新列表，否则刷新一回来节点直接没了，看不到动画
+    setRemovingId(id)
+    await new Promise((r) => setTimeout(r, 200))
     await reload()
+    setRemovingId('')
   }
 
   return (
@@ -222,7 +232,7 @@ export function CalendarPanel() {
         ) : (
           <div className="mt-2 grid grid-cols-7">
             {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-caption text-foreground-tertiary">
+              <div key={w} className="pb-1 text-center text-caption text-foreground-secondary">
                 {w}
               </div>
             ))}
@@ -253,7 +263,13 @@ export function CalendarPanel() {
             <div className="py-4 text-body-sm text-foreground-secondary">这天没有记录</div>
           ) : (
             dayRecords.map((r) => (
-              <div key={r.id} className="flex h-15 items-center gap-3">
+              <div
+                key={r.id}
+                className={cn(
+                  'item-in flex h-15 items-center gap-3',
+                  removingId === r.id && 'item-out',
+                )}
+              >
                 <IconBadge icon={CigaretteOff} size={32} color="red" />
                 <div className="min-w-0 flex-1">
                   <div className="font-rounded text-body font-semibold">
@@ -266,15 +282,25 @@ export function CalendarPanel() {
                 {confirmId === r.id ? (
                   <div className="flex shrink-0 items-center gap-3 text-body-sm">
                     <span className="text-foreground-secondary">删除？</span>
-                    <button type="button" onClick={() => setConfirmId('')}>
+                    <button
+                      type="button"
+                      disabled={!!deletingId}
+                      onClick={() => setConfirmId('')}
+                    >
                       取消
                     </button>
                     <button
                       type="button"
                       className="text-red-solid"
+                      disabled={!!deletingId}
+                      aria-busy={deletingId === r.id || undefined}
                       onClick={() => onDelete(r.id)}
                     >
-                      删除
+                      {deletingId === r.id ? (
+                        <LoaderCircle className="size-[18px] animate-spin" />
+                      ) : (
+                        '删除'
+                      )}
                     </button>
                   </div>
                 ) : (
@@ -282,7 +308,7 @@ export function CalendarPanel() {
                     type="button"
                     aria-label="删除"
                     onClick={() => setConfirmId(r.id)}
-                    className="flex size-8 shrink-0 items-center justify-center text-foreground-tertiary"
+                    className="flex size-8 shrink-0 items-center justify-center text-foreground-secondary"
                   >
                     <Trash2 className="size-5" />
                   </button>

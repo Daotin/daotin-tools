@@ -45,7 +45,7 @@ export function QuitTimer() {
         <div className="text-body-sm text-foreground-secondary">点击开始，从现在计时</div>
         <Button
           className="mt-3 px-8 bg-tool-solid text-white"
-          disabled={busy}
+          loading={busy}
           onClick={async () => {
             setBusy(true)
             try {
@@ -168,7 +168,7 @@ export function QuitTimer() {
           <Button variant="ghost" className="flex-1" onClick={() => setOpen(false)}>
             取消
           </Button>
-          <Button variant="destructive" className="flex-1" disabled={busy} onClick={onConfirm}>
+          <Button variant="destructive" className="flex-1" loading={busy} onClick={onConfirm}>
             确认破戒
           </Button>
         </div>

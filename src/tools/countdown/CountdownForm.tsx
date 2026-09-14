@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check, LoaderCircle, X } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { cn } from '@/lib/cn'
 import { SiteAction, roundButton } from '@/components/AppShell'
@@ -68,7 +68,8 @@ export function CountdownForm() {
   const [form, setForm] = useState<EventInput>(emptyForm)
   const [loaded, setLoaded] = useState(!id)
   const [newCategory, setNewCategory] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  /** 哪个按钮在转圈：保存和删除各转各的 */
+  const [busy, setBusy] = useState<'' | 'save' | 'delete'>('')
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   // 编辑态：列表读回来后把这条填进表单（只填一次，之后以用户输入为准）
@@ -97,7 +98,7 @@ export function CountdownForm() {
 
   async function onSave() {
     if (!valid) return
-    setBusy(true)
+    setBusy('save')
     try {
       const input = { ...form, title: form.title.trim(), note: form.note?.trim() || null }
       if (!mock) {
@@ -110,12 +111,12 @@ export function CountdownForm() {
       // 失败时留在表单页，用户填的内容还在
       toast(e instanceof Error ? e.message : '保存失败，请重试')
     } finally {
-      setBusy(false)
+      setBusy('')
     }
   }
 
   async function onDelete() {
-    setBusy(true)
+    setBusy('delete')
     try {
       if (!mock && id) await deleteEvent(id)
       toast('已删除')
@@ -123,22 +124,24 @@ export function CountdownForm() {
     } catch (e) {
       toast(e instanceof Error ? e.message : '保存失败，请重试')
     } finally {
-      setBusy(false)
+      setBusy('')
     }
   }
 
+  /* 站点栏的圆形 ✓ 不是 Button 组件，保存时把图标换成同尺寸的转圈，尺寸不变 */
   const saveButton = (
     <button
       type="button"
       aria-label="保存"
-      disabled={!valid || busy}
+      disabled={!valid || !!busy}
+      aria-busy={busy === 'save' || undefined}
       onClick={onSave}
       className={cn(
         roundButton,
         valid ? 'bg-tool-solid text-white' : 'bg-surface text-foreground-tertiary',
       )}
     >
-      <Check />
+      {busy === 'save' ? <LoaderCircle className="animate-spin" /> : <Check />}
     </button>
   )
 
@@ -245,7 +248,7 @@ export function CountdownForm() {
                   setNewCategory(e.target.value)
                   patch({ category: e.target.value })
                 }}
-                className="h-9 w-28 shrink-0 rounded-pill bg-tool-soft px-4 font-rounded text-body-sm font-semibold text-tool-solid outline-none placeholder:text-foreground-tertiary"
+                className="h-9 w-28 shrink-0 rounded-pill bg-tool-soft px-4 font-rounded text-body-sm font-semibold text-tool-solid outline-none placeholder:text-foreground-secondary"
               />
             )}
           </div>
@@ -258,14 +261,15 @@ export function CountdownForm() {
             placeholder="写点什么"
             value={form.note ?? ''}
             onChange={(e) => patch({ note: e.target.value })}
-            className="mt-1 w-full rounded-sm bg-background px-4 py-3.5 text-body outline-none placeholder:text-foreground-tertiary"
+            className="mt-1 w-full rounded-sm bg-background px-4 py-3.5 text-body outline-none placeholder:text-foreground-secondary"
           />
         </div>
 
         {/* 电脑端面板底部的保存按钮；手机上用站点栏的 ✓ */}
         <Button
           className="mt-5 hidden w-full bg-tool-solid text-white lg:flex"
-          disabled={!valid || busy}
+          disabled={!valid || !!busy}
+          loading={busy === 'save'}
           onClick={onSave}
         >
           保存
@@ -276,7 +280,8 @@ export function CountdownForm() {
           <Button
             variant="destructive"
             className="mt-3 w-full"
-            disabled={busy}
+            disabled={!!busy}
+            loading={busy === 'delete'}
             onClick={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}
           >
             {confirmDelete ? '确定删除？' : '删除'}

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eye, EyeOff, LayoutGrid, LoaderCircle } from 'lucide-react'
+import { Eye, EyeOff, LayoutGrid } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { IconBadge } from '@/components/IconBadge'
 import { Button } from '@/components/ui/button'
@@ -85,7 +85,7 @@ export function Login() {
             type="button"
             aria-label={showPassword ? '隐藏密码' : '显示密码'}
             onClick={() => setShowPassword((v) => !v)}
-            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-foreground-tertiary"
+            className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-foreground-secondary"
           >
             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
           </button>
@@ -93,8 +93,8 @@ export function Login() {
 
         {error && <p className="mt-4 text-caption text-red-solid">{error}</p>}
 
-        <Button type="submit" disabled={submitting} className="mt-5 w-full">
-          {submitting ? <LoaderCircle className="size-[18px] animate-spin" /> : '登录'}
+        <Button type="submit" loading={submitting} className="mt-5 w-full">
+          登录
         </Button>
       </form>
     </div>

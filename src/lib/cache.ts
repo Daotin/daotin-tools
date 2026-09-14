@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 /**
  * 工具数据的本地缓存：先拿上次的结果显示（不出骨架屏），再后台请求覆盖。
@@ -62,14 +62,44 @@ export function clearCache() {
 }
 
 /**
+ * 后台刷新的全局计数：屏幕上已经有内容时又发请求，AppShell 顶部亮一条细进度条。
+ * 只是一个 module 级的订阅器，不引状态管理库。
+ */
+let refreshCount = 0
+const refreshListeners = new Set<() => void>()
+
+function bumpRefresh(step: number) {
+  refreshCount += step
+  for (const listener of refreshListeners) listener()
+}
+
+export function subscribeRefresh(listener: () => void) {
+  refreshListeners.add(listener)
+  return () => {
+    refreshListeners.delete(listener)
+  }
+}
+
+export function isRefreshing() {
+  return refreshCount > 0
+}
+
+/**
  * 有缓存就同步作为初始值（调用方据此跳过骨架屏），随后照常请求并覆盖、写回缓存。
  * `tool` 传 null 表示这次不读也不写缓存（假数据模式）。
  */
 export function useCachedQuery<T>(tool: string | null, fetcher: () => Promise<T>) {
   const [data, setData] = useState<T | null>(() => (tool ? (readCache<T>(tool) ?? null) : null))
   const [error, setError] = useState('')
+  /**
+   * 屏幕上已经有东西（缓存数据，或上次失败留下的错误提示）时的请求才算后台刷新，走顶部进度条；
+   * 首次加载由骨架屏负责，不重复提示。假数据模式（tool 为 null）不发请求，一律不计。
+   */
+  const settled = useRef(data !== null)
 
   const reload = useCallback(async () => {
+    const background = tool !== null && settled.current
+    if (background) bumpRefresh(1)
     try {
       const next = await fetcher()
       setData(next)
@@ -77,6 +107,9 @@ export function useCachedQuery<T>(tool: string | null, fetcher: () => Promise<T>
       if (tool) writeCache(tool, next)
     } catch (e) {
       setError(e instanceof Error ? e.message : '读取失败')
+    } finally {
+      settled.current = true
+      if (background) bumpRefresh(-1)
     }
   }, [tool, fetcher])
 
