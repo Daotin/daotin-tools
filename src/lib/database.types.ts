@@ -28,6 +28,8 @@ export type CountdownEvent = Base & {
   category: string
   pinned: boolean
   note: string | null
+  /** icons.ts 里的 key，空串表示没选 */
+  icon: string
 }
 
 export type Period = Base & {
@@ -65,6 +67,7 @@ export type Database = {
           category: string
           pinned?: boolean
           note?: string | null
+          icon?: string
         }>
         Update: Partial<CountdownEvent>
         Relationships: []

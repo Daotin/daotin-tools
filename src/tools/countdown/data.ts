@@ -14,6 +14,7 @@ export type EventInput = {
   category: string
   pinned: boolean
   note: string | null
+  icon: string
 }
 
 /** 分类列表的三个默认值，和已有事件的分类合并去重。 */

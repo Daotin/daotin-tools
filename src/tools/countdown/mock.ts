@@ -23,6 +23,7 @@ export function mockEvents(): CountdownEvent[] {
       category: '生活',
       pinned: true,
       note: null,
+      icon: 'wallet',
     },
     {
       ...base,
@@ -34,6 +35,7 @@ export function mockEvents(): CountdownEvent[] {
       category: '纪念日',
       pinned: false,
       note: '提前订月饼，回家吃饭。',
+      icon: '',
     },
     {
       ...base,
@@ -45,6 +47,7 @@ export function mockEvents(): CountdownEvent[] {
       category: '纪念日',
       pinned: false,
       note: null,
+      icon: 'cake',
     },
     {
       ...base,
@@ -56,6 +59,7 @@ export function mockEvents(): CountdownEvent[] {
       category: '工作',
       pinned: false,
       note: null,
+      icon: 'flag',
     },
   ]
 }

@@ -12,8 +12,10 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { CountdownEvent } from '@/lib/database.types'
 import { CountdownList } from './CountdownList'
+import { EVENT_ICONS, ICON_KEYS } from './icons'
 import type { EventInput } from './data'
 import { categoriesOf, createEvent, deleteEvent, updateEvent, useEvents } from './data'
 import { REPEAT_LABEL, toDateString } from './rules'
@@ -34,6 +36,7 @@ function emptyForm(): EventInput {
     category: '生活',
     pinned: false,
     note: null,
+    icon: '',
   }
 }
 
@@ -183,8 +186,37 @@ export function CountdownForm() {
                 />
               </Field>
 
-              {/* DatePicker / Segmented / 分类是一组控件而不是单个输入框，没有可指的 id，
+              {/* DatePicker / Segmented / 图标 / 分类是一组控件而不是单个输入框，没有可指的 id，
                   用 asChild 渲染成 span，避免留下指不到控件的空 label */}
+              <Field>
+                <FieldLabel asChild>
+                  <span>图标（可选）</span>
+                </FieldLabel>
+                {/* 再点一次选中的那个就取消，回到按"是否重复"自动选的默认图标 */}
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  spacing={1}
+                  value={form.icon}
+                  onValueChange={(icon) => patch({ icon })}
+                  className="grid w-full grid-cols-6"
+                >
+                  {ICON_KEYS.map((key) => {
+                    const Icon = EVENT_ICONS[key]
+                    return (
+                      <ToggleGroupItem
+                        key={key}
+                        value={key}
+                        aria-label={key}
+                        className="h-11 w-full p-0 data-[state=on]:text-tool"
+                      >
+                        <Icon className="size-4.5" />
+                      </ToggleGroupItem>
+                    )
+                  })}
+                </ToggleGroup>
+              </Field>
+
               <Field>
                 <FieldLabel asChild>
                   <span>日期</span>
@@ -325,5 +357,6 @@ function toInput(event: CountdownEvent): EventInput {
     category: event.category,
     pinned: event.pinned,
     note: event.note,
+    icon: event.icon ?? '',
   }
 }

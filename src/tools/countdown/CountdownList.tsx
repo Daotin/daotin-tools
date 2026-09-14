@@ -32,17 +32,15 @@ import {
   ItemTitle,
 } from '@/components/ui/item'
 import type { CountdownEvent } from '@/lib/database.types'
+import { EVENT_ICONS } from './icons'
 import { useEvents } from './data'
 import type { Entry } from './rules'
 import { REPEAT_LABEL, formatMonthDay, lunarText, parseDate, sortEvents } from './rules'
 
-/** 重复事件用循环图标，一次性用日历图标。 */
+/** 选了图标就用选的；没选时重复事件用循环图标，一次性用日历图标。 */
 function EventIcon({ event, className }: { event: CountdownEvent; className?: string }) {
-  return event.repeat === 'none' ? (
-    <CalendarDays className={className} />
-  ) : (
-    <Repeat className={className} />
-  )
+  const Icon = EVENT_ICONS[event.icon] ?? (event.repeat === 'none' ? CalendarDays : Repeat)
+  return <Icon className={className} />
 }
 
 /** 目标日期文字：农历事件显示农历，公历显示月日。 */

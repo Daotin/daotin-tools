@@ -100,7 +100,7 @@ describe('农历每年（验收 12、12a）', () => {
 })
 
 describe('排序（验收 13）', () => {
-  const base = { id: '', user_id: '', created_at: '', category: '生活', note: null }
+  const base = { id: '', user_id: '', created_at: '', category: '生活', note: null, icon: '' }
   const make = (title: string, date: string, pinned = false): CountdownEvent => ({
     ...base,
     id: title,
