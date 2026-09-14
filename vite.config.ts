@@ -9,7 +9,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      // 有新版本时页面底部提示，不自动刷新（页面里有表单，自动刷会刷掉正在填的内容）
+      // 过渡版：只发一个注销自己的 service worker，把各设备上装着的旧版和它的缓存清掉。
+      // 缓存外壳对这个站没用（四个工具打开都要拉 Supabase），只带来"部署完刷新不生效"。
+      // 等设备都打开过一次，下一版把整个插件换成静态 manifest。
+      selfDestroying: true,
       registerType: 'prompt',
       manifest: {
         name: 'Daotin 的工具箱',
