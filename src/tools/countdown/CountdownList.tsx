@@ -7,6 +7,14 @@ import { SiteAction, roundButton } from '@/components/AppShell'
 import { HeroCard } from '@/components/HeroCard'
 import { IconBadge } from '@/components/IconBadge'
 import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import type { CountdownEvent } from '@/lib/database.types'
 import { useEvents } from './data'
 import type { Entry } from './rules'
@@ -76,18 +84,24 @@ function Row({ entry, search }: { entry: Entry; search: string }) {
   )
 }
 
-function Empty({ search }: { search: string }) {
+function EmptyState({ search }: { search: string }) {
   return (
-    <HeroCard className="flex flex-col items-center text-center">
-      <IconBadge icon={CalendarDays} size={56} />
-      <div className="mt-2 text-heading">还没有日子</div>
-      <div className="text-body-sm text-foreground-secondary">添加第一个倒数日</div>
-      <Button asChild className="mt-3 bg-tool-solid px-8 text-white">
-        <Link to={{ pathname: '/countdown/new', search }} viewTransition>
-          添加
-        </Link>
-      </Button>
-    </HeroCard>
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia>
+          <IconBadge icon={CalendarDays} size={56} />
+        </EmptyMedia>
+        <EmptyTitle>还没有日子</EmptyTitle>
+        <EmptyDescription>添加第一个倒数日</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Button asChild className="bg-tool-solid px-8 text-white">
+          <Link to={{ pathname: '/countdown/new', search }} viewTransition>
+            添加
+          </Link>
+        </Button>
+      </EmptyContent>
+    </Empty>
   )
 }
 
@@ -128,7 +142,7 @@ export function CountdownList({ embedded = false }: { embedded?: boolean }) {
         /* 骨架屏：形状对应 Hero Card */
         <PageSkeleton />
       ) : entries.length === 0 ? (
-        <Empty search={search} />
+        <EmptyState search={search} />
       ) : (
         <>
           <Link

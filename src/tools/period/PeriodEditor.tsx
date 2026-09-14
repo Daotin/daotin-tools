@@ -1,15 +1,14 @@
 import { useState } from 'react'
-import { cn } from '@/lib/cn'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import type { Period } from '@/lib/database.types'
 import { toDateString } from '@/lib/date'
 import type { PeriodInput } from './data'
 
-const label = 'text-caption text-foreground-secondary'
 /** 卡内输入框：--background 底、无边框。 */
 const field = 'mt-1 border-0 bg-background font-rounded'
 
@@ -87,8 +86,11 @@ export function PeriodEditor({
 
   return (
     <Sheet open onClose={onClose} title="编辑记录">
-      <div className={cn(label, 'mt-4')}>开始日</div>
+      <Label htmlFor="period-start" className="mt-4">
+        开始日
+      </Label>
       <Input
+        id="period-start"
         type="date"
         className={field}
         max={todayString()}
@@ -96,14 +98,20 @@ export function PeriodEditor({
         onChange={(e) => setStart(e.target.value)}
       />
 
-      <div className={cn(label, 'mt-4')}>结束日</div>
+      <Label htmlFor="period-end" className="mt-4">
+        结束日
+      </Label>
+      {/* 不禁用：补填时开关本来就是开的，禁用会逼用户先关开关。填了日期就自动关掉"未结束" */}
       <Input
+        id="period-end"
         type="date"
         className={field}
         max={todayString()}
-        disabled={open}
-        value={open ? '' : end}
-        onChange={(e) => setEnd(e.target.value)}
+        value={end}
+        onChange={(e) => {
+          setEnd(e.target.value)
+          if (e.target.value) setOpen(false)
+        }}
       />
 
       <label className="mt-2 flex h-12 items-center justify-between">

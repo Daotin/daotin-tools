@@ -8,7 +8,9 @@ import { Segmented } from '@/components/Segmented'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import type { CountdownEvent } from '@/lib/database.types'
 import { CountdownList } from './CountdownList'
 import type { EventInput } from './data'
@@ -22,7 +24,6 @@ const REPEATS = (['none', 'yearly', 'monthly', 'weekly'] as const).map((value) =
 
 const NEW_CATEGORY = '__new__'
 
-const label = 'text-caption text-foreground-secondary'
 /** 卡内输入框：--background 底、无边框。 */
 const field = 'mt-1 border-0 bg-background'
 
@@ -175,15 +176,20 @@ export function CountdownForm() {
         </div>
 
         <div className="rounded-md bg-surface p-5 lg:rounded-none lg:bg-transparent lg:p-0">
-          <div className={label}>标题</div>
+          <Label htmlFor="countdown-title">标题</Label>
           <Input
+            id="countdown-title"
             className={field}
             placeholder="写点什么"
             value={form.title}
             onChange={(e) => patch({ title: e.target.value })}
           />
 
-          <div className={cn(label, 'mt-4')}>日期</div>
+          {/* DatePicker / Segmented / 分类是一组控件而不是单个输入框，没有可指的 id，
+              用 asChild 渲染成 span，避免留下指不到控件的空 label */}
+          <Label asChild className="mt-4">
+            <span>日期</span>
+          </Label>
           <DatePicker
             className="mt-1"
             value={form.date}
@@ -197,7 +203,9 @@ export function CountdownForm() {
             onChange={(is_lunar) => patch({ is_lunar })}
           />
 
-          <div className={cn(label, 'mt-2')}>重复</div>
+          <Label asChild className="mt-2">
+            <span>重复</span>
+          </Label>
           <Segmented
             size="mini"
             className="mt-1 h-9"
@@ -210,7 +218,9 @@ export function CountdownForm() {
             onChange={(repeat) => patch({ repeat })}
           />
 
-          <div className={cn(label, 'mt-4')}>分类</div>
+          <Label asChild className="mt-4">
+            <span>分类</span>
+          </Label>
           <div className="-mx-5 mt-1 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] lg:mx-0 lg:px-0">
             {categories.map((category) => (
               <button
@@ -255,13 +265,16 @@ export function CountdownForm() {
 
           <SwitchRow text="置顶" checked={form.pinned} onChange={(pinned) => patch({ pinned })} />
 
-          <div className={cn(label, 'mt-2')}>备注</div>
-          <textarea
+          <Label htmlFor="countdown-note" className="mt-2">
+            备注
+          </Label>
+          <Textarea
+            id="countdown-note"
             rows={3}
+            className="mt-1"
             placeholder="写点什么"
             value={form.note ?? ''}
             onChange={(e) => patch({ note: e.target.value })}
-            className="mt-1 w-full rounded-sm bg-background px-4 py-3.5 text-body outline-none placeholder:text-foreground-secondary"
           />
         </div>
 

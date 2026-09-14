@@ -52,7 +52,7 @@
   --tool-soft: var(--primary-soft);
 
   /* 弹层阴影 */
-  --shadow-raised: 0 12px 40px oklch(0.3 0.06 268 / 0.14);
+  --raised-shadow: 0 12px 40px oklch(0.3 0.06 268 / 0.14);
 
   /* shadcn/ui 变量，全部指向上面的 token */
   --card: var(--surface);
@@ -112,7 +112,7 @@
   --tool-soft: var(--primary-soft);
 
   /* 弹层阴影 */
-  --shadow-raised: 0 12px 40px oklch(0 0 0 / 0.5);
+  --raised-shadow: 0 12px 40px oklch(0 0 0 / 0.5);
 
   /* shadcn/ui 变量，全部指向上面的 token */
   --card: var(--surface);
@@ -178,7 +178,7 @@
   --tool-soft: var(--primary-soft);
 
   /* 弹层阴影 */
-  --shadow-raised: 0 12px 40px oklch(0 0 0 / 0.5);
+  --raised-shadow: 0 12px 40px oklch(0 0 0 / 0.5);
 
   /* shadcn/ui 变量，全部指向上面的 token */
   --card: var(--surface);
@@ -242,6 +242,9 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /* 弹层阴影：注册进 @theme 才会生成 shadow-raised 工具类 */
+  --shadow-raised: var(--raised-shadow);
 
   /* 字体栈 */
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC",
@@ -334,80 +337,57 @@
   }
 }
 
-/* 弹层定位：手机贴底部抽屉，电脑（≥1024px）居中对话框。
-   不靠 <dialog> 的 UA 样式居中——各浏览器的 inset / margin 默认值不一致，
-   Safari 下会贴到左边，所以这里自己写死 inset + margin: auto。 */
-.sheet {
-  margin-top: auto;
-  margin-bottom: 0;
-}
+/* 弹层动效：时长曲线统一到本项目的 token。
+   电脑端对话框（Radix）必须用 @keyframes——Radix 靠 animationName 判断退场播完没有，
+   只写 transition 会直接卸载，退场动画播不出来。
+   手机端抽屉（vaul）自己驱动 transform，它把 .5s 和自己那条曲线写死在注入的样式里，
+   优先级压得过普通规则，只能 !important 覆盖。 */
+@layer utilities {
+  .sheet-overlay[data-state='open'] {
+    animation: sheet-fade-in var(--transition-duration-base) var(--ease-quint) both;
+  }
+  .sheet-overlay[data-state='closed'] {
+    animation: sheet-fade-out var(--transition-duration-base) var(--ease-quint) both;
+  }
+  .sheet-dialog[data-state='open'] {
+    animation: sheet-pop-in var(--transition-duration-base) var(--ease-quint) both;
+  }
+  .sheet-dialog[data-state='closed'] {
+    animation: sheet-pop-out var(--transition-duration-base) var(--ease-quint) both;
+  }
 
-@media (min-width: 64rem) {
-  .sheet {
-    position: fixed;
-    inset: 0;
-    margin: auto;
-    height: fit-content;
+  [data-vaul-drawer],
+  [data-vaul-overlay] {
+    animation-duration: var(--transition-duration-base) !important;
+    animation-timing-function: var(--ease-quint) !important;
+    transition-duration: var(--transition-duration-base) !important;
+    transition-timing-function: var(--ease-quint) !important;
   }
 }
 
-/* 弹层进出场：手机从下方滑入，电脑（≥1024px）0.96 缩放淡入，关闭反向播放。
-   用 transition + @starting-style + allow-discrete，<dialog> 的 display / overlay
-   变化也会等动画放完再生效，所以关闭动画不用在 JS 里延迟卸载。
-   位移用 translate / scale 独立属性，不碰上面 margin: auto 的居中。 */
-.sheet {
-  opacity: 0;
-  translate: 0 16px;
-  transition:
-    opacity var(--transition-duration-base) var(--ease-quint),
-    translate var(--transition-duration-base) var(--ease-quint),
-    scale var(--transition-duration-base) var(--ease-quint),
-    overlay var(--transition-duration-base) allow-discrete,
-    display var(--transition-duration-base) allow-discrete;
-}
-
-.sheet[open] {
-  opacity: 1;
-  translate: 0 0;
-  scale: 1;
-}
-
-@starting-style {
-  .sheet[open] {
+@keyframes sheet-fade-in {
+  from {
     opacity: 0;
-    translate: 0 16px;
   }
 }
 
-@media (min-width: 64rem) {
-  .sheet {
-    translate: 0 0;
+@keyframes sheet-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes sheet-pop-in {
+  from {
+    opacity: 0;
     scale: 0.96;
   }
-  @starting-style {
-    .sheet[open] {
-      translate: 0 0;
-      scale: 0.96;
-    }
-  }
 }
 
-/* 遮罩淡入淡出 */
-.sheet::backdrop {
-  opacity: 0;
-  transition:
-    opacity var(--transition-duration-base) var(--ease-quint),
-    overlay var(--transition-duration-base) allow-discrete,
-    display var(--transition-duration-base) allow-discrete;
-}
-
-.sheet[open]::backdrop {
-  opacity: 1;
-}
-
-@starting-style {
-  .sheet[open]::backdrop {
+@keyframes sheet-pop-out {
+  to {
     opacity: 0;
+    scale: 0.96;
   }
 }
 

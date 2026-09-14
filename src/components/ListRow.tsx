@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router'
 import { IconBadge } from './IconBadge'
+import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from '@/components/ui/item'
 import type { ToolColor } from '@/tools'
 
 type Props = {
@@ -16,28 +17,41 @@ type Props = {
 
 /** 白卡里的列表行：左 32px 圆形图标底 + 文字，右侧可选内容或 chevron。 */
 export function ListRow({ icon, color, label, trailing, to, onClick }: Props) {
+  const interactive = !!(to || onClick)
   const inner = (
     <>
-      <IconBadge icon={icon} size={32} color={color} />
-      <span className="flex-1 text-body">{label}</span>
-      {trailing}
-      {(to || onClick) && <ChevronRight className="size-5 text-foreground-secondary" />}
+      <ItemMedia>
+        <IconBadge icon={icon} size={32} color={color} />
+      </ItemMedia>
+      <ItemContent>
+        <ItemTitle>{label}</ItemTitle>
+      </ItemContent>
+      {(trailing || interactive) && (
+        <ItemActions>
+          {trailing}
+          {interactive && <ChevronRight className="size-5 text-foreground-secondary" />}
+        </ItemActions>
+      )}
     </>
   )
-  const className = 'flex h-15 w-full items-center gap-3 text-left'
+
   if (to) {
     return (
-      <Link to={to} viewTransition className={className}>
-        {inner}
-      </Link>
+      <Item asChild>
+        <Link to={to} viewTransition>
+          {inner}
+        </Link>
+      </Item>
     )
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={className}>
-        {inner}
-      </button>
+      <Item asChild>
+        <button type="button" onClick={onClick}>
+          {inner}
+        </button>
+      </Item>
     )
   }
-  return <div className={className}>{inner}</div>
+  return <Item>{inner}</Item>
 }

@@ -8,6 +8,14 @@ import { IconBadge } from '@/components/IconBadge'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import type { Period } from '@/lib/database.types'
 import { PeriodCalendar } from './PeriodCalendar'
@@ -46,35 +54,39 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
   const [date, setDate] = useState(() => toDateString(new Date()))
   const [busy, setBusy] = useState(false)
   return (
-    <HeroCard className="flex flex-col items-center text-center">
-      <IconBadge icon={Droplet} size={56} />
-      <div className="mt-2 text-heading">先填一次上次经期开始日</div>
-      <div className="text-body-sm text-foreground-secondary">
-        填完就能算出下次大概什么时候来
-      </div>
-      <Input
-        type="date"
-        className="mt-3 border-0 bg-surface font-rounded"
-        max={toDateString(new Date())}
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-      />
-      <Button
-        className="mt-3 w-full bg-tool-solid text-white"
-        disabled={!date}
-        loading={busy}
-        onClick={async () => {
-          setBusy(true)
-          try {
-            await onSave(date)
-          } finally {
-            setBusy(false)
-          }
-        }}
-      >
-        保存
-      </Button>
-    </HeroCard>
+    <Empty>
+      <EmptyHeader>
+        <EmptyMedia>
+          <IconBadge icon={Droplet} size={56} />
+        </EmptyMedia>
+        <EmptyTitle>先填一次上次经期开始日</EmptyTitle>
+        <EmptyDescription>填完就能算出下次大概什么时候来</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        <Input
+          type="date"
+          className="border-0 bg-surface font-rounded"
+          max={toDateString(new Date())}
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+        <Button
+          className="w-full bg-tool-solid text-white"
+          disabled={!date}
+          loading={busy}
+          onClick={async () => {
+            setBusy(true)
+            try {
+              await onSave(date)
+            } finally {
+              setBusy(false)
+            }
+          }}
+        >
+          保存
+        </Button>
+      </EmptyContent>
+    </Empty>
   )
 }
 

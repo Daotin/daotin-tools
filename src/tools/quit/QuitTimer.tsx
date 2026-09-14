@@ -5,6 +5,14 @@ import { IconBadge } from '@/components/IconBadge'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import { CalendarPanel } from './QuitCalendar'
 import { useQuit } from './QuitLayout'
@@ -39,28 +47,34 @@ export function QuitTimer() {
 
   if (!item) {
     return (
-      <HeroCard className="flex flex-col items-center text-center">
-        <IconBadge icon={CigaretteOff} size={56} />
-        <div className="mt-2 text-heading">准备好了吗</div>
-        <div className="text-body-sm text-foreground-secondary">点击开始，从现在计时</div>
-        <Button
-          className="mt-3 px-8 bg-tool-solid text-white"
-          loading={busy}
-          onClick={async () => {
-            setBusy(true)
-            try {
-              if (!mock) await createItem(new Date().toISOString())
-              await reload()
-            } catch (e) {
-              toast(e instanceof Error ? e.message : '保存失败，请重试')
-            } finally {
-              setBusy(false)
-            }
-          }}
-        >
-          开始计时
-        </Button>
-      </HeroCard>
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia>
+            <IconBadge icon={CigaretteOff} size={56} />
+          </EmptyMedia>
+          <EmptyTitle>准备好了吗</EmptyTitle>
+          <EmptyDescription>点击开始，从现在计时</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button
+            className="px-8 bg-tool-solid text-white"
+            loading={busy}
+            onClick={async () => {
+              setBusy(true)
+              try {
+                if (!mock) await createItem(new Date().toISOString())
+                await reload()
+              } catch (e) {
+                toast(e instanceof Error ? e.message : '保存失败，请重试')
+              } finally {
+                setBusy(false)
+              }
+            }}
+          >
+            开始计时
+          </Button>
+        </EmptyContent>
+      </Empty>
     )
   }
 

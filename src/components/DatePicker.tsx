@@ -1,21 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Solar } from 'lunar-typescript'
+import { zhCN } from 'react-day-picker/locale'
 import { cn } from '@/lib/cn'
 import { parseDate, toDateString } from '@/lib/date'
 import { Button } from '@/components/ui/button'
+import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
 
 // 农历标签函数和组件放一起（挪出去会多一个文件），关掉 fast-refresh 的导出检查
 /* eslint-disable react-refresh/only-export-components */
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 
-/** 年月快选的年份范围：1900 到今年 + 30，一百多项直接渲染，不做虚拟滚动。 */
-const YEARS = Array.from(
-  { length: new Date().getFullYear() + 31 - 1900 },
-  (_, i) => 1900 + i,
-)
-const MONTHS = Array.from({ length: 12 }, (_, i) => i)
+/** 年月下拉的范围：1900 年初到今年 + 30 年末，min / max 会再往里收。 */
+const FIRST_MONTH = new Date(1900, 0, 1)
+const LAST_MONTH = new Date(new Date().getFullYear() + 30, 11, 1)
 
 const lunarOf = (date: Date) =>
   Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate()).getLunar()
@@ -50,96 +48,8 @@ export function lunarCellLabel(date: Date): string {
   return lunar.getDayInChinese()
 }
 
-/** 当月 1 号所在周的周一起排到月末，补位格子留空。 */
-function monthCells(anchor: Date) {
-  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
-  const blanks = (first.getDay() + 6) % 7
-  const days = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0).getDate()
-  return [
-    ...Array.from({ length: blanks }, () => null),
-    ...Array.from(
-      { length: days },
-      (_, i) => new Date(anchor.getFullYear(), anchor.getMonth(), i + 1),
-    ),
-  ]
-}
-
-function Day({
-  date,
-  selected,
-  today,
-  showLunar,
-  disabled,
-  onSelect,
-}: {
-  date: Date
-  selected: boolean
-  today: boolean
-  showLunar: boolean
-  disabled: boolean
-  onSelect: () => void
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onSelect}
-      className="flex h-12 items-center justify-center disabled:opacity-35"
-    >
-      <span
-        className={cn(
-          'flex size-11 flex-col items-center justify-center rounded-pill',
-          selected ? 'bg-tool-solid text-white' : today && 'ring-2 ring-tool-solid',
-        )}
-      >
-        <span className="font-rounded text-body leading-none font-semibold tabular-nums">
-          {date.getDate()}
-        </span>
-        {showLunar && (
-          <span
-            className={cn(
-              'mt-0.5 text-caption leading-none',
-              !selected && 'text-foreground-secondary',
-            )}
-          >
-            {lunarCellLabel(date)}
-          </span>
-        )}
-      </span>
-    </button>
-  )
-}
-
-/** 年月快选列表里的一项。data-active 给"打开时滚到选中项"用。 */
-function YmItem({
-  label,
-  active,
-  disabled,
-  onSelect,
-}: {
-  label: string
-  active: boolean
-  disabled: boolean
-  onSelect: () => void
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      data-active={active || undefined}
-      onClick={onSelect}
-      className={cn(
-        'flex h-10 w-full items-center justify-center rounded-sm font-rounded text-body tabular-nums disabled:opacity-35',
-        active && 'bg-tool-soft font-semibold text-tool-solid',
-      )}
-    >
-      {label}
-    </button>
-  )
-}
-
 /**
- * 日期选择器：按钮样式的输入框 + 弹层月历。
+ * 日期选择器：按钮样式的输入框 + 弹层月历（react-day-picker）。
  * showLunar 时输入框和每个格子都带农历（用原生 <dialog>，Esc 关闭、遮罩点击关闭）。
  */
 export function DatePicker({
@@ -159,12 +69,10 @@ export function DatePicker({
   className?: string
 }) {
   const ref = useRef<HTMLDialogElement>(null)
-  const ymRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
-  /** true 时弹层里显示年月快选，false 显示月历 */
-  const [picking, setPicking] = useState(false)
   const [draft, setDraft] = useState(value)
-  const [anchor, setAnchor] = useState(() => parseDate(value))
+  /** 当前翻到的月份，「今天」和年月下拉都改它 */
+  const [month, setMonth] = useState(() => parseDate(value))
 
   useEffect(() => {
     const dialog = ref.current
@@ -173,46 +81,24 @@ export function DatePicker({
     if (!open && dialog.open) dialog.close()
   }, [open])
 
-  // 切到年月视图时把选中的年、月滚到列表中间（只动列表自己的 scrollTop）
-  useEffect(() => {
-    if (!picking) return
-    ymRef.current?.querySelectorAll<HTMLElement>('[data-active]').forEach((el) => {
-      const box = el.parentElement
-      if (box) box.scrollTop = el.offsetTop - (box.clientHeight - el.offsetHeight) / 2
-    })
-  }, [picking])
-
   const selected = parseDate(draft)
-  const todayString = toDateString(new Date())
-
-  /** 整段 [from, to] 都落在 min/max 之外就禁用 */
-  const blocked = (from: Date, to: Date) =>
-    (min !== undefined && toDateString(to) < min) || (max !== undefined && toDateString(from) > max)
 
   function start() {
     setDraft(value)
-    setAnchor(parseDate(value))
-    setPicking(false)
+    setMonth(parseDate(value))
     setOpen(true)
   }
 
-  function pick(date: Date) {
-    setDraft(toDateString(date))
-  }
-
   function jumpToday() {
-    setDraft(todayString)
-    setAnchor(new Date())
-    setPicking(false)
+    const today = new Date()
+    setDraft(toDateString(today))
+    setMonth(today)
   }
 
   function confirm() {
     onChange(draft)
     setOpen(false)
   }
-
-  const shift = (step: number) =>
-    setAnchor(new Date(anchor.getFullYear(), anchor.getMonth() + step, 1))
 
   return (
     <>
@@ -235,142 +121,82 @@ export function DatePicker({
       <dialog
         ref={ref}
         onClose={() => setOpen(false)}
-        onCancel={(e) => {
-          // 年月视图下 Esc 先退回月历，再按才关弹层
-          if (picking) {
-            e.preventDefault()
-            setPicking(false)
-          }
-        }}
         onClick={(e) => {
-          if (e.target === ref.current) setOpen(false)
+          // 同 Sheet：按坐标判断是否点在方框外，不能用 e.target === dialog（禁用元素的点击会冒到 dialog）
+          if (e.detail === 0) return
+          const box = ref.current?.getBoundingClientRect()
+          if (!box) return
+          const outside =
+            e.clientX < box.left ||
+            e.clientX > box.right ||
+            e.clientY < box.top ||
+            e.clientY > box.bottom
+          if (outside) setOpen(false)
         }}
         className={cn(
-          'sheet w-full max-w-full rounded-t-lg bg-surface-raised p-5 text-foreground shadow-raised outline-none backdrop:bg-black/25',
-          'lg:w-90 lg:rounded-lg',
+          // 手机贴底、电脑（≥1024px）居中 360px；进出场 200ms。
+          // 原来复用 index.css 的 .sheet，Sheet 组件改走 Radix 后那个类没了，这里用工具类自带一份。
+          'mt-auto w-full max-w-full rounded-t-lg bg-surface-raised p-5 text-foreground shadow-raised outline-none backdrop:bg-black/25',
+          'lg:fixed lg:inset-0 lg:m-auto lg:h-fit lg:w-90 lg:rounded-lg',
+          'translate-y-4 opacity-0 transition-[opacity,translate,scale,display,overlay] transition-discrete duration-base ease-quint',
+          'open:translate-y-0 open:opacity-100 starting:open:translate-y-4 starting:open:opacity-0',
+          'lg:translate-y-0 lg:scale-96 lg:open:scale-100 lg:starting:open:scale-96',
         )}
       >
-        <div className="flex items-center justify-center gap-2">
-          <button
-            type="button"
-            aria-label="上个月"
-            onClick={() => shift(-1)}
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary',
-              picking && 'invisible',
-            )}
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <button
-            type="button"
-            aria-expanded={picking}
-            onClick={() => setPicking(!picking)}
-            className="flex shrink-0 items-center gap-1 font-rounded text-body font-semibold whitespace-nowrap"
-          >
-            {anchor.getFullYear()} 年 {anchor.getMonth() + 1} 月
-            <ChevronDown
-              className={cn(
-                'size-4 text-foreground-secondary transition-transform duration-200 ease-out',
-                picking && 'rotate-180',
-              )}
-            />
-          </button>
-          <button
-            type="button"
-            aria-label="下个月"
-            onClick={() => shift(1)}
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary',
-              picking && 'invisible',
-            )}
-          >
-            <ChevronRight className="size-5" />
-          </button>
-        </div>
-
-        {/* 标题是公历月份，这里标出对应的农历月，避免"9 月"+"初五"被读成九月初五 */}
-        {!picking && (
-          <div className="mt-1 text-center text-caption text-foreground-secondary">
-            {lunarMonthSpan(anchor)}
-          </div>
-        )}
-
-        {showLunar && (
-          <div className="mt-0.5 text-center text-caption text-tool-solid">
-            已选农历 {lunarFullText(selected)}，每年按此重复
-          </div>
-        )}
-
-        {/* 月历和年月快选叠在同一格，互相淡入淡出；隐藏的那层 inert，键盘聚焦不到 */}
-        <div className="mt-2 grid *:col-start-1 *:row-start-1">
-          <div
-            inert={picking}
-            className={cn(
-              'grid grid-cols-7 transition-opacity duration-200 ease-out',
-              picking && 'opacity-0',
-            )}
-          >
-            {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-caption text-foreground-secondary">
-                {w}
+        <Calendar
+          mode="single"
+          required
+          locale={zhCN}
+          weekStartsOn={1}
+          selected={selected}
+          onSelect={(date) => setDraft(toDateString(date))}
+          month={month}
+          onMonthChange={setMonth}
+          captionLayout="dropdown"
+          startMonth={min ? parseDate(min) : FIRST_MONTH}
+          endMonth={max ? parseDate(max) : LAST_MONTH}
+          disabled={[
+            ...(min ? [{ before: parseDate(min) }] : []),
+            ...(max ? [{ after: parseDate(max) }] : []),
+          ]}
+          classNames={{ month_caption: 'flex w-full flex-col px-(--cell-size) pb-1' }}
+          formatters={{
+            formatYearDropdown: (date) => `${date.getFullYear()} 年`,
+            formatMonthDropdown: (date) => `${date.getMonth() + 1} 月`,
+            formatWeekdayName: (date) => WEEKDAYS[(date.getDay() + 6) % 7],
+          }}
+          components={{
+            // 标题下常驻农历月份，避免"9 月" + "初五"被读成九月初五
+            MonthCaption: ({ calendarMonth, children, className }) => (
+              <div className={className}>
+                {children}
+                <div className="text-center text-caption text-foreground-secondary">
+                  {lunarMonthSpan(calendarMonth.date)}
+                </div>
+                {showLunar && (
+                  <div className="mt-0.5 text-center text-caption text-tool-solid">
+                    已选农历 {lunarFullText(selected)}，每年按此重复
+                  </div>
+                )}
               </div>
-            ))}
-            {monthCells(anchor).map((date, i) =>
-              date ? (
-                <Day
-                  key={i}
-                  date={date}
-                  selected={toDateString(date) === draft}
-                  today={toDateString(date) === todayString}
-                  showLunar={showLunar}
-                  disabled={blocked(date, date)}
-                  onSelect={() => pick(date)}
-                />
-              ) : (
-                <i key={i} />
-              ),
-            )}
-          </div>
-
-          <div
-            ref={ymRef}
-            inert={!picking}
-            className={cn(
-              'grid grid-cols-2 gap-3 transition-opacity duration-200 ease-out',
-              !picking && 'opacity-0',
-            )}
-          >
-            <div className="relative h-72 overflow-y-auto">
-              {YEARS.map((y) => (
-                <YmItem
-                  key={y}
-                  label={`${y}`}
-                  active={y === anchor.getFullYear()}
-                  disabled={blocked(new Date(y, 0, 1), new Date(y, 11, 31))}
-                  onSelect={() => setAnchor(new Date(y, anchor.getMonth(), 1))}
-                />
-              ))}
-            </div>
-            <div className="relative h-72 overflow-y-auto">
-              {MONTHS.map((m) => (
-                <YmItem
-                  key={m}
-                  label={`${m + 1} 月`}
-                  active={m === anchor.getMonth()}
-                  disabled={blocked(
-                    new Date(anchor.getFullYear(), m, 1),
-                    new Date(anchor.getFullYear(), m + 1, 0),
-                  )}
-                  onSelect={() => {
-                    setAnchor(new Date(anchor.getFullYear(), m, 1))
-                    setPicking(false)
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
+            ),
+            DayButton: ({ children, ...props }) => (
+              <CalendarDayButton {...props}>
+                {children}
+                {showLunar && (
+                  <span
+                    className={cn(
+                      'mt-0.5 text-caption font-normal',
+                      !props.modifiers.selected && 'text-foreground-secondary',
+                    )}
+                  >
+                    {lunarCellLabel(props.day.date)}
+                  </span>
+                )}
+              </CalendarDayButton>
+            ),
+          }}
+        />
 
         <div className="mt-3 flex items-center justify-between">
           <Button variant="ghost" onClick={jumpToday}>

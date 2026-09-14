@@ -1,9 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { cn } from '@/lib/cn'
+import { useSyncExternalStore } from 'react'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
+
+/** ≥1024px 算电脑。MediaQueryList 放模块级，全站弹层共用一个，不用每次挂一个监听。 */
+const desktop = window.matchMedia('(min-width: 64rem)')
+const subscribe = (onChange: () => void) => {
+  desktop.addEventListener('change', onChange)
+  return () => desktop.removeEventListener('change', onChange)
+}
 
 /**
- * 弹层：手机是底部抽屉（顶部圆角 + 拖动条），电脑（≥1024px）是居中对话框宽 400px。
- * 用原生 <dialog>，Esc 关闭、焦点锁定、遮罩都由浏览器负责。
+ * 弹层：手机是 vaul 底部抽屉（自带下拉关闭手势 + 拖动条），
+ * 电脑（≥1024px）是 Radix 居中对话框宽 400px。
+ * Esc 关闭、点遮罩关闭、焦点锁定都由 vaul / Radix 负责。
  */
 export function Sheet({
   open,
@@ -16,31 +25,28 @@ export function Sheet({
   title: string
   children: React.ReactNode
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
+  const isDesktop = useSyncExternalStore(subscribe, () => desktop.matches)
+  const onOpenChange = (next: boolean) => {
+    if (!next) onClose()
+  }
 
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
-  }, [open])
+  if (isDesktop) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent>
+          <DialogTitle>{title}</DialogTitle>
+          {children}
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
   return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose()
-      }}
-      className={cn(
-        // 定位（手机贴底 / 电脑居中）在 index.css 的 .sheet 里，不依赖 <dialog> 的 UA 样式
-        'sheet w-full max-w-full rounded-t-lg bg-surface-raised p-6 text-foreground shadow-raised outline-none backdrop:bg-black/25',
-        'lg:w-100 lg:rounded-lg',
-      )}
-    >
-      <div className="mx-auto h-1 w-9 rounded-pill bg-border lg:hidden" />
-      <div className="mt-4 text-heading lg:mt-0">{title}</div>
-      {children}
-    </dialog>
+    <Drawer open={open} onOpenChange={onOpenChange}>
+      <DrawerContent>
+        <DrawerTitle className="mt-4">{title}</DrawerTitle>
+        {children}
+      </DrawerContent>
+    </Drawer>
   )
 }

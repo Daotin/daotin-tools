@@ -152,7 +152,23 @@ description: 个人小工具站的全站通用视觉规则。浅紫灰底、白�
 
 ## 5. Components
 
-基于 shadcn/ui，但以下默认值必须改掉后再用：`--radius`、全部颜色变量、焦点环颜色、`components.json` 的 `baseColor`（不用 slate）。
+基于 shadcn/ui，但以下默认值必须改掉后再用：`--radius`、全部颜色变量、焦点环颜色、`components.json` 的 `baseColor`（不用 slate）。**装进来的每个 shadcn 组件都要删掉 `dark:` 变体**——本项目深色走 `prefers-color-scheme` + `[data-theme]`，`dark:` 会在手动选浅色时误命中。
+
+项目组件与其 shadcn 内核的对应关系（对外 API 由项目组件定义，换内核不影响调用方）：
+
+| 项目组件 | shadcn 内核 |
+|---|---|
+| `Sheet` | 手机 `drawer`（vaul），电脑 ≥1024px `dialog` |
+| `Toast` | `sonner`（已去掉 next-themes，改读 `data-theme`） |
+| `Segmented` | `tabs`（滑块是项目自己加的） |
+| `ListRow` | `item` |
+| `InlineError` | `alert` destructive |
+| `DatePicker` | `calendar`（react-day-picker），外壳仍是原生 `<dialog>` |
+| 空状态 | `empty` |
+| 按钮转圈 | `spinner` |
+| 表单 | `input` / `textarea` / `label` / `switch` |
+
+`AppShell`、`HeroCard`、`IconBadge`、`ToolCard`、`ToolColorProvider`、`ErrorBoundary`、顶部刷新进度条没有 shadcn 对应物，保持自写。
 
 ### 圆角与间距
 
