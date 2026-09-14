@@ -1,15 +1,14 @@
 import { useState } from 'react'
-import {
-  Download,
-  KeyRound,
-  LoaderCircle,
-  Mail,
-  Upload,
-} from 'lucide-react'
+import { Download, KeyRound, LoaderCircle, Mail, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { ListRow } from '@/components/ListRow'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { ItemGroup } from '@/components/ui/item'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { useSession } from '@/lib/auth'
 import {
   TABLE_LABELS,
@@ -21,9 +20,6 @@ import {
   type TableProgress,
 } from '@/lib/backup'
 import { supabase } from '@/lib/supabase'
-
-const cardInput = 'border-0 bg-background'
-const card = 'rounded-md bg-surface px-5 py-1'
 
 export function Account() {
   const { session } = useSession()
@@ -45,31 +41,32 @@ export function Account() {
 
   return (
     <>
-      <h1 className="mt-1 mb-4 font-rounded text-title">账号</h1>
-      <div className={card}>
-        <ListRow icon={Mail} color="blue" label={session?.user.email ?? ''} />
-        <ListRow icon={KeyRound} color="blue" label="修改密码" to="/account/password" />
-      </div>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">账号</h1>
+      <ItemGroup className="gap-2">
+        <ListRow icon={Mail} label={session?.user.email ?? ''} />
+        <ListRow icon={KeyRound} label="修改密码" to="/account/password" />
+      </ItemGroup>
 
-      <div className={`${card} mt-3`}>
+      <Separator className="my-6" />
+
+      <ItemGroup className="gap-2">
         <ListRow
           icon={Download}
-          color="blue"
           label="导出全部数据"
           onClick={exporting ? undefined : onExport}
           trailing={
             exporting ? (
-              <LoaderCircle className="size-[18px] animate-spin text-foreground-secondary" />
+              <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
             ) : undefined
           }
         />
-        <ListRow icon={Upload} color="blue" label="从备份恢复" to="/account/restore" />
-      </div>
-      {error && <p className="mt-3 text-caption text-red-solid">{error}</p>}
+        <ListRow icon={Upload} label="从备份恢复" to="/account/restore" />
+      </ItemGroup>
+      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
       <Button
-        variant="destructive"
-        className="mt-8 w-full"
+        variant="outline"
+        className="mt-8 w-full text-destructive hover:text-destructive"
         loading={signingOut}
         onClick={async () => {
           setSigningOut(true)
@@ -113,38 +110,45 @@ export function AccountPassword() {
 
   return (
     <>
-      <h1 className="mt-1 mb-4 font-rounded text-title">修改密码</h1>
-      <form onSubmit={onSubmit} className="rounded-md bg-surface p-5">
-        <label className="block text-caption text-foreground-secondary" htmlFor="new-password">
-          新密码
-        </label>
-        <Input
-          id="new-password"
-          type="password"
-          autoComplete="new-password"
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={`mt-1 ${cardInput}`}
-        />
-        <label className="mt-4 block text-caption text-foreground-secondary" htmlFor="confirm-password">
-          确认新密码
-        </label>
-        <Input
-          id="confirm-password"
-          type="password"
-          autoComplete="new-password"
-          required
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          className={`mt-1 ${cardInput}`}
-        />
-        {error && <p className="mt-4 text-caption text-red-solid">{error}</p>}
-        <Button type="submit" loading={saving} className="mt-5 w-full">
-          保存
-        </Button>
-      </form>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">修改密码</h1>
+      <Card>
+        <CardContent>
+          <form onSubmit={onSubmit}>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="new-password">新密码</FieldLabel>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <FieldDescription>至少 6 位</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                />
+              </Field>
+              {error && <FieldError errors={[{ message: error }]} />}
+              <Field>
+                <Button type="submit" loading={saving}>
+                  保存
+                </Button>
+              </Field>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
     </>
   )
 }
@@ -181,75 +185,76 @@ export function AccountRestore() {
 
   return (
     <>
-      <h1 className="mt-1 mb-4 font-rounded text-title">从备份恢复</h1>
-      <div className="rounded-md bg-surface p-5">
-        <input
-          type="file"
-          accept="application/json,.json"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-full text-body-sm"
-        />
-        <label className="mt-4 flex items-center gap-3 text-body">
-          <input
-            type="checkbox"
-            checked={crossAccount}
-            onChange={(e) => setCrossAccount(e.target.checked)}
-            className="size-5 accent-[var(--primary)]"
-          />
-          这是其他账号的备份
-        </label>
-        <p className="mt-1 text-caption text-foreground-secondary">
-          勾选后会重新生成所有记录的 ID，只能在四张表都为空的账号上执行。
-        </p>
-        <Button
-          type="button"
-          disabled={!file}
-          loading={running}
-          onClick={onStart}
-          className="mt-5 w-full"
-        >
-          开始恢复
-        </Button>
-
-        {progress && (
-          <ul className="mt-5 flex flex-col gap-2">
-            {progress.map((p) => (
-              <li key={p.table} className="flex justify-between gap-3 text-body-sm">
-                <span>{TABLE_LABELS[p.table]}</span>
-                <span
-                  className={
-                    p.status === 'failed' ? 'text-red-solid' : 'text-foreground-secondary'
-                  }
-                >
-                  {progressText(p)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {error && (
-          <p className="mt-4 text-caption text-red-solid">
-            {error}
-            {progress && (
-              <>
-                <br />
-                已完成：
-                {progress.filter((p) => p.status === 'done').map((p) => TABLE_LABELS[p.table]).join('、') || '无'}
-                ；未完成：
-                {progress
-                  .filter((p) => p.status !== 'done')
-                  .map((p) => TABLE_LABELS[p.table])
-                  .join('、') || '无'}
-              </>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">从备份恢复</h1>
+      <Card>
+        <CardContent>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="backup-file">备份文件</FieldLabel>
+              <Input
+                id="backup-file"
+                type="file"
+                accept="application/json,.json"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+            </Field>
+            <Field orientation="horizontal">
+              <Switch id="cross-account" checked={crossAccount} onCheckedChange={setCrossAccount} />
+              <FieldLabel htmlFor="cross-account" className="font-normal">
+                这是其他账号的备份
+                <FieldDescription>
+                  勾选后会重新生成所有记录的 ID，只能在四张表都为空的账号上执行。
+                </FieldDescription>
+              </FieldLabel>
+            </Field>
+            {error && (
+              <FieldError>
+                {error}
+                {progress && (
+                  <>
+                    <br />
+                    已完成：
+                    {progress
+                      .filter((p) => p.status === 'done')
+                      .map((p) => TABLE_LABELS[p.table])
+                      .join('、') || '无'}
+                    ；未完成：
+                    {progress
+                      .filter((p) => p.status !== 'done')
+                      .map((p) => TABLE_LABELS[p.table])
+                      .join('、') || '无'}
+                  </>
+                )}
+              </FieldError>
             )}
-          </p>
-        )}
-        {done && (
-          <p className="mt-4 text-caption text-green-solid">
-            恢复完成，共 {TABLES.length} 张表。
-          </p>
-        )}
-      </div>
+            <Field>
+              <Button type="button" disabled={!file} loading={running} onClick={onStart}>
+                开始恢复
+              </Button>
+            </Field>
+          </FieldGroup>
+
+          {progress && (
+            <ul className="mt-6 flex flex-col gap-2 text-sm">
+              {progress.map((p) => (
+                <li key={p.table} className="flex justify-between gap-3">
+                  <span>{TABLE_LABELS[p.table]}</span>
+                  <span
+                    className={p.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}
+                  >
+                    {progressText(p)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {done && (
+            <p className="mt-6 text-sm text-muted-foreground">
+              恢复完成，共 {TABLES.length} 张表。
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </>
   )
 }

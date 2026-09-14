@@ -1,120 +1,158 @@
 import { Suspense, useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronLeft, LayoutGrid, Monitor, Moon, Settings, Sun, User, X } from 'lucide-react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router'
+import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/cn'
 import { ErrorBoundary } from './ErrorBoundary'
-import { IconBadge } from './IconBadge'
 import { PageSkeleton } from './Skeleton'
+import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarTrigger,
+  useSidebar,
+} from '@/components/ui/sidebar'
 import { isRefreshing, subscribeRefresh } from '@/lib/cache'
 import { useSession } from '@/lib/auth'
 import { tools } from '@/tools'
 
 const SITE_NAME = 'Daotin 的工具箱'
 
-/** 站点栏的 40px 白底圆形 ghost 按钮样式。有色按钮在此基础上覆盖 bg / text。 */
-export const roundButton =
-  'flex size-10 shrink-0 items-center justify-center rounded-pill bg-surface text-foreground transition-[transform,filter] hover:brightness-95 active:scale-[0.97] [&_svg]:size-5'
+/** 站点栏上的图标按钮样式，工具页通过 SiteAction 往里塞按钮时共用。 */
+export const roundButton = buttonVariants({ variant: 'ghost', size: 'icon' })
 
-const THEMES = ['system', 'light', 'dark'] as const
-const THEME_ICON = { system: Monitor, light: Sun, dark: Moon }
+const THEMES = [
+  { value: 'light', label: '浅色', icon: Sun },
+  { value: 'dark', label: '深色', icon: Moon },
+  { value: 'system', label: '跟随系统', icon: Monitor },
+] as const
 
-/** 主题按钮：跟随系统 → 浅色 → 深色三态循环。跟随系统时删掉 data-theme，交给 prefers-color-scheme。 */
-function ThemeToggle({ className }: { className?: string }) {
-  const [theme, setTheme] = useState<(typeof THEMES)[number]>(
-    () => document.documentElement.dataset.theme === 'light'
-      ? 'light'
-      : document.documentElement.dataset.theme === 'dark'
-        ? 'dark'
-        : 'system',
-  )
-  const Icon = THEME_ICON[theme]
+type Theme = (typeof THEMES)[number]['value']
 
-  function cycle() {
-    const next = THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]
+const readTheme = (): Theme => {
+  try {
+    const saved = localStorage.getItem('dt:theme')
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch {
+    // 隐私模式读不到：当跟随系统处理
+  }
+  return 'system'
+}
+
+/** 主题：三项下拉（浅色 / 深色 / 跟随系统），落到 <html> 上的 dark class。 */
+function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>(readTheme)
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => {
+      const dark = theme === 'dark' || (theme === 'system' && media.matches)
+      document.documentElement.classList.toggle('dark', dark)
+      document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+    }
+    apply()
+    // 跟随系统时，系统白天黑夜切换要跟着变
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [theme])
+
+  function pick(next: Theme) {
     setTheme(next)
     try {
       localStorage.setItem('dt:theme', next)
     } catch {
       // 隐私模式写不进去：本次切换照样生效，只是刷新后回到跟随系统
     }
-    if (next === 'system') delete document.documentElement.dataset.theme
-    else document.documentElement.dataset.theme = next
   }
 
   return (
-    <button
-      type="button"
-      aria-label={`主题：${{ system: '跟随系统', light: '浅色', dark: '深色' }[theme]}`}
-      onClick={cycle}
-      className={cn(roundButton, className)}
-    >
-      <Icon />
-    </button>
-  )
-}
-
-/** 电脑端左侧导航：240px 固定，与页面底同色无边框。 */
-function Sidebar() {
-  const { session } = useSession()
-  const email = session?.user.email
-  return (
-    <aside className="hidden w-60 shrink-0 flex-col lg:flex">
-      <div className="flex h-[72px] items-center px-6 font-rounded text-title">
-        {SITE_NAME}
-      </div>
-      <nav className="flex flex-col gap-1 px-3">
-        <NavItem to="/" end icon={<IconBadge icon={LayoutGrid} size={32} color="blue" />}>
-          首页
-        </NavItem>
-        {tools.map((tool) => (
-          <NavItem
-            key={tool.id}
-            to={tool.path}
-            icon={<IconBadge icon={tool.icon} size={32} color={tool.color} />}
-          >
-            {tool.name}
-          </NavItem>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" aria-label="主题">
+          <Sun className="scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
+          <Moon className="absolute scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {THEMES.map((item) => (
+          <DropdownMenuItem key={item.value} onClick={() => pick(item.value)}>
+            <item.icon />
+            {item.label}
+            {theme === item.value && <span className="ml-auto text-muted-foreground">·</span>}
+          </DropdownMenuItem>
         ))}
-      </nav>
-      <div className="mt-auto flex items-center gap-1 px-3 pb-3">
-        <div className="min-w-0 flex-1">
-          <NavItem to="/account" icon={<IconBadge icon={User} size={32} color="blue" />}>
-            <span className="truncate">{email?.split('@')[0] ?? '账号'}</span>
-          </NavItem>
-        </div>
-        <ThemeToggle />
-      </div>
-    </aside>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
-function NavItem({
-  to,
-  end,
-  icon,
-  children,
-}: {
-  to: string
-  end?: boolean
-  icon: React.ReactNode
-  children: React.ReactNode
-}) {
+/** 电脑端常驻、手机端从左侧滑出的导航（Sidebar 自带手机适配）。 */
+function AppSidebar() {
+  const { session } = useSession()
+  const { pathname } = useLocation()
+  const { setOpenMobile } = useSidebar()
+  const email = session?.user.email
+  const items = [
+    { to: '/', icon: LayoutGrid, label: '首页' },
+    ...tools.map((tool) => ({ to: tool.path, icon: tool.icon, label: tool.name })),
+  ]
+  // 首页要精确匹配，工具页匹配它下面的所有子路由
+  const active = (to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
+
   return (
-    <NavLink
-      to={to}
-      end={end}
-      viewTransition
-      className={({ isActive }) =>
-        cn(
-          'flex h-12 items-center gap-3 rounded-sm px-3 font-rounded text-body-sm font-semibold transition-colors',
-          isActive ? 'bg-surface' : 'hover:bg-surface/50',
-        )
-      }
-    >
-      {icon}
-      {children}
-    </NavLink>
+    <Sidebar collapsible="offcanvas">
+      <SidebarHeader className="h-16 justify-center px-4">
+        <span className="truncate font-semibold">{SITE_NAME}</span>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {items.map((item) => (
+                <SidebarMenuItem key={item.to}>
+                  <SidebarMenuButton asChild isActive={active(item.to)}>
+                    {/* 手机端点完要把抽屉收起来 */}
+                    <Link to={item.to} viewTransition onClick={() => setOpenMobile(false)}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={active('/account')}>
+              <Link to="/account" viewTransition onClick={() => setOpenMobile(false)}>
+                <User />
+                <span className="truncate">{email?.split('@')[0] ?? '账号'}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+    </Sidebar>
   )
 }
 
@@ -130,7 +168,7 @@ export function SiteAction({ children }: { children: React.ReactNode }) {
   return host ? createPortal(children, host) : null
 }
 
-/** 离线横幅：orange soft 底 orange solid 字，可关闭；回到在线自动消失。 */
+/** 离线横幅：可关闭；回到在线自动消失。 */
 function OfflineBanner() {
   const [offline, setOffline] = useState(() => !navigator.onLine)
   const [closed, setClosed] = useState(false)
@@ -153,7 +191,7 @@ function OfflineBanner() {
   return (
     <div
       data-open={offline && !closed}
-      className="reveal flex items-center gap-2 bg-orange-soft px-4 py-2 text-caption text-orange-solid lg:px-8"
+      className="reveal flex items-center gap-2 border-b bg-muted px-4 py-2 text-sm text-muted-foreground lg:px-6"
     >
       <span className="flex-1">当前离线，显示的是上次数据</span>
       <button type="button" aria-label="关闭" onClick={() => setClosed(true)}>
@@ -166,18 +204,16 @@ function OfflineBanner() {
 /**
  * 顶部后台刷新进度条：有缓存的页面静默刷新时亮起，否则用户不知道数据在更新。
  * 节点常驻，只切 data-open，这样结束时能淡出（假数据模式不发请求，计数一直是 0）。
+ * Progress 不传 value 就是不定值，指示条的来回扫在 index.css 里。
  */
-function RefreshBar({ color }: { color?: string }) {
+function RefreshBar() {
   const refreshing = useSyncExternalStore(subscribeRefresh, isRefreshing)
   return (
-    <div
+    <Progress
       aria-hidden
       data-open={refreshing}
-      className="refresh-bar pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden"
-      style={color ? ({ '--tool-solid': `var(--${color}-solid)` } as React.CSSProperties) : undefined}
-    >
-      <i className="block h-full w-1/3 bg-tool-solid" />
-    </div>
+      className="refresh-bar pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 rounded-none bg-transparent"
+    />
   )
 }
 
@@ -187,66 +223,52 @@ export function AppShell() {
   const isHome = pathname === '/'
   // 回上一级路径而不是 navigate(-1)：从外部链接直接进来时历史里没有上一页
   const parent = pathname.slice(0, pathname.lastIndexOf('/')) || '/'
-  // 根路径页（/quit、/account）电脑端有左侧导航，返回按钮只在手机显示；
-  // 再往下的详情 / 编辑 / 设置页导航里没有入口，电脑端也要给返回
-  const deep = parent !== '/'
   // 工具页右侧换成该工具的设置齿轮；设置页本身不再显示
   const tool = tools.find((t) => pathname.startsWith(t.path))
   const settingsPath = tool?.hasSettings ? `${tool.path}/settings` : null
 
   return (
-    <div className="flex min-h-dvh">
-      <RefreshBar color={tool?.color} />
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <RefreshBar />
         <OfflineBanner />
-        {/* 手机顶部站点栏：56px，与页面底同色无边框 */}
-        <header className="flex h-14 shrink-0 items-center justify-between px-4">
-          {isHome ? (
-            /* 首页不显示返回按钮，站名落在内容区第一行 */
-            <span />
-          ) : (
-            <button
-              type="button"
-              aria-label="返回"
-              onClick={() => navigate({ pathname: parent, search }, { viewTransition: true })}
-              className={cn(roundButton, !deep && 'lg:hidden')}
-            >
-              <ChevronLeft />
-            </button>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 lg:px-6">
+          <SidebarTrigger className="-ml-1" />
+          {!isHome && (
+            <>
+              <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="返回"
+                onClick={() => navigate({ pathname: parent, search }, { viewTransition: true })}
+              >
+                <ChevronLeft />
+              </Button>
+            </>
           )}
-          {/* 右操作位：工具页是设置齿轮，其余页面手机上是账号（电脑端账号在左侧导航） */}
-          {settingsPath && pathname !== settingsPath ? (
-            <Link to={settingsPath} viewTransition aria-label="设置" className={cn(roundButton, 'ml-auto')}>
-              <Settings />
-            </Link>
-          ) : tool ? (
-            /* 没有设置齿轮的工具，把右操作位让给页面自己（见 SiteAction）。
-               portal 的内容挂在站点栏里，拿不到 ToolColorProvider 的变量，这里补一份。 */
-            <div
-              id={SITE_ACTION_ID}
-              className="ml-auto flex"
-              style={
-                {
-                  '--tool-solid': `var(--${tool.color}-solid)`,
-                  '--tool-soft': `var(--${tool.color}-soft)`,
-                } as React.CSSProperties
-              }
-            />
-          ) : (
-            <div className="ml-auto flex gap-2 lg:hidden">
-              <Link to="/account" viewTransition aria-label="账号" className={roundButton}>
-                <User />
+          <div className="ml-auto flex items-center gap-1">
+            {/* 工具页把右操作位让给页面自己（见 SiteAction） */}
+            <div id={SITE_ACTION_ID} className="flex items-center gap-1" />
+            {settingsPath && pathname !== settingsPath && (
+              <Link
+                to={settingsPath}
+                viewTransition
+                aria-label="设置"
+                className={cn(roundButton)}
+              >
+                <Settings />
               </Link>
-              <ThemeToggle />
-            </div>
-          )}
+            )}
+            <ThemeToggle />
+          </div>
         </header>
-        <main className="flex flex-1 flex-col px-4 pb-8 lg:px-8 lg:pb-12">
+        <main className="flex flex-1 flex-col px-4 pt-4 pb-8 lg:px-6 lg:pb-12">
           <div
             className={cn(
               'mx-auto flex w-full flex-1 flex-col',
-              isHome ? 'max-w-[960px]' : 'max-w-[720px]',
+              isHome ? 'max-w-5xl' : 'max-w-3xl',
             )}
           >
             {/* 工具页是按需加载的 chunk，加载期间用骨架屏占位，加载失败落到 ErrorBoundary */}
@@ -257,7 +279,7 @@ export function AppShell() {
             </ErrorBoundary>
           </div>
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }

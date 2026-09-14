@@ -1,12 +1,10 @@
-import { cn } from "@/lib/cn"
+import { cn } from "cn"
 
-/** shadcn 的 Skeleton，去掉 animate-pulse：骨架屏静态不动。底色 --surface-muted，圆角 --radius-sm。 */
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="skeleton"
-      aria-hidden
-      className={cn("rounded-sm bg-surface-muted", className)}
+      className={cn("animate-pulse rounded-md bg-accent", className)}
       {...props}
     />
   )

@@ -1,6 +1,18 @@
 import { useSyncExternalStore } from 'react'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { Drawer, DrawerContent, DrawerTitle } from '@/components/ui/drawer'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '@/components/ui/drawer'
 
 /** ≥1024px 算电脑。MediaQueryList 放模块级，全站弹层共用一个，不用每次挂一个监听。 */
 const desktop = window.matchMedia('(min-width: 64rem)')
@@ -10,8 +22,7 @@ const subscribe = (onChange: () => void) => {
 }
 
 /**
- * 弹层：手机是 vaul 底部抽屉（自带下拉关闭手势 + 拖动条），
- * 电脑（≥1024px）是 Radix 居中对话框宽 400px。
+ * 弹层：手机是 vaul 底部抽屉（自带下拉关闭手势 + 拖动条），电脑（≥1024px）是居中对话框。
  * Esc 关闭、点遮罩关闭、焦点锁定都由 vaul / Radix 负责。
  */
 export function Sheet({
@@ -34,7 +45,10 @@ export function Sheet({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogHeader>
+            <DialogTitle>{title}</DialogTitle>
+            <DialogDescription className="sr-only">{title}</DialogDescription>
+          </DialogHeader>
           {children}
         </DialogContent>
       </Dialog>
@@ -44,8 +58,11 @@ export function Sheet({
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
-        <DrawerTitle className="mt-4">{title}</DrawerTitle>
-        {children}
+        <DrawerHeader>
+          <DrawerTitle>{title}</DrawerTitle>
+          <DrawerDescription className="sr-only">{title}</DrawerDescription>
+        </DrawerHeader>
+        <div className="px-4 pb-6">{children}</div>
       </DrawerContent>
     </Drawer>
   )

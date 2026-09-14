@@ -17,18 +17,20 @@ export function OilSummary() {
   return (
     <>
       <div className="mt-1 flex items-baseline gap-1">
-        <span className="font-rounded text-stat font-bold">{latest.p92.toFixed(2)}</span>
-        <span className="text-caption text-foreground-secondary">元/升</span>
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">{latest.p92.toFixed(2)}</span>
+        <span className="text-xs text-muted-foreground">元/升</span>
       </div>
       {/* 右侧留出迷你折线的位置 */}
-      <div className="mt-auto pt-0.5 pr-16 text-caption text-foreground-secondary">
+      <div className="mt-auto pt-0.5 pr-16 text-xs text-muted-foreground">
         92# · {Number(month)}/{Number(day)}
       </div>
       {points.length > 1 && (
         <svg width="60" height="28" viewBox="0 0 60 28" aria-hidden className="absolute right-5 bottom-5">
+          {/* 首页不在工具路由下，--chart-tool 是 ToolCard 行内给的；
+              var(--color-tool) 在 :root 就地展开取不到它，必须用工具类 */}
           <polyline
             fill="none"
-            stroke="var(--tool-solid)"
+            className="stroke-tool"
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"

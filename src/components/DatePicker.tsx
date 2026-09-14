@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { CalendarIcon } from 'lucide-react'
 import { Solar } from 'lunar-typescript'
 import { zhCN } from 'react-day-picker/locale'
 import { cn } from '@/lib/cn'
 import { parseDate, toDateString } from '@/lib/date'
 import { Button } from '@/components/ui/button'
 import { Calendar, CalendarDayButton } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // 农历标签函数和组件放一起（挪出去会多一个文件），关掉 fast-refresh 的导出检查
 /* eslint-disable react-refresh/only-export-components */
@@ -49,8 +51,8 @@ export function lunarCellLabel(date: Date): string {
 }
 
 /**
- * 日期选择器：按钮样式的输入框 + 弹层月历（react-day-picker）。
- * showLunar 时输入框和每个格子都带农历（用原生 <dialog>，Esc 关闭、遮罩点击关闭）。
+ * 日期选择器：shadcn 官方范式，Popover + Calendar。
+ * showLunar 时按钮上和每个格子里都带农历。
  */
 export function DatePicker({
   value,
@@ -68,88 +70,42 @@ export function DatePicker({
   max?: string
   className?: string
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
   const [open, setOpen] = useState(false)
-  const [draft, setDraft] = useState(value)
   /** 当前翻到的月份，「今天」和年月下拉都改它 */
   const [month, setMonth] = useState(() => parseDate(value))
+  const selected = parseDate(value)
 
-  useEffect(() => {
-    const dialog = ref.current
-    if (!dialog) return
-    if (open && !dialog.open) dialog.showModal()
-    if (!open && dialog.open) dialog.close()
-  }, [open])
-
-  const selected = parseDate(draft)
-
-  function start() {
-    setDraft(value)
-    setMonth(parseDate(value))
-    setOpen(true)
-  }
-
-  function jumpToday() {
-    const today = new Date()
-    setDraft(toDateString(today))
-    setMonth(today)
-  }
-
-  function confirm() {
-    onChange(draft)
+  function pick(date: Date) {
+    onChange(toDateString(date))
     setOpen(false)
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={start}
-        className={cn(
-          'flex h-12 w-full items-center rounded-sm bg-background px-4 font-rounded text-body',
-          className,
-        )}
-      >
-        {value}
-        {showLunar && value && (
-          <span className="ml-2 text-body-sm text-foreground-secondary">
-            · 农历{lunarFullText(parseDate(value))}
-          </span>
-        )}
-      </button>
-
-      <dialog
-        ref={ref}
-        onClose={() => setOpen(false)}
-        onClick={(e) => {
-          // 同 Sheet：按坐标判断是否点在方框外，不能用 e.target === dialog（禁用元素的点击会冒到 dialog）
-          if (e.detail === 0) return
-          const box = ref.current?.getBoundingClientRect()
-          if (!box) return
-          const outside =
-            e.clientX < box.left ||
-            e.clientX > box.right ||
-            e.clientY < box.top ||
-            e.clientY > box.bottom
-          if (outside) setOpen(false)
-        }}
-        className={cn(
-          // 手机贴底、电脑（≥1024px）居中 360px；进出场 200ms。
-          // 原来复用 index.css 的 .sheet，Sheet 组件改走 Radix 后那个类没了，这里用工具类自带一份。
-          'mt-auto w-full max-w-full rounded-t-lg bg-surface-raised p-5 text-foreground shadow-raised outline-none backdrop:bg-black/25',
-          'lg:fixed lg:inset-0 lg:m-auto lg:h-fit lg:w-90 lg:rounded-lg',
-          'translate-y-4 opacity-0 transition-[opacity,translate,scale,display,overlay] transition-discrete duration-base ease-quint',
-          'open:translate-y-0 open:opacity-100 starting:open:translate-y-4 starting:open:opacity-0',
-          'lg:translate-y-0 lg:scale-96 lg:open:scale-100 lg:starting:open:scale-96',
-        )}
-      >
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        // 每次打开都回到当前值所在的月份
+        if (next) setMonth(parseDate(value))
+        setOpen(next)
+      }}
+    >
+      <PopoverTrigger asChild>
+        <Button variant="outline" className={cn('w-full justify-start font-normal', className)}>
+          <CalendarIcon className="text-muted-foreground" />
+          {value}
+          {showLunar && value && (
+            <span className="text-muted-foreground">· 农历{lunarFullText(selected)}</span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
         <Calendar
           mode="single"
           required
           locale={zhCN}
           weekStartsOn={1}
           selected={selected}
-          onSelect={(date) => setDraft(toDateString(date))}
+          onSelect={pick}
           month={month}
           onMonthChange={setMonth}
           captionLayout="dropdown"
@@ -159,7 +115,7 @@ export function DatePicker({
             ...(min ? [{ before: parseDate(min) }] : []),
             ...(max ? [{ after: parseDate(max) }] : []),
           ]}
-          classNames={{ month_caption: 'flex w-full flex-col px-(--cell-size) pb-1' }}
+          classNames={{ month_caption: 'flex w-full flex-col px-(--cell-size)' }}
           formatters={{
             formatYearDropdown: (date) => `${date.getFullYear()} 年`,
             formatMonthDropdown: (date) => `${date.getMonth() + 1} 月`,
@@ -170,11 +126,11 @@ export function DatePicker({
             MonthCaption: ({ calendarMonth, children, className }) => (
               <div className={className}>
                 {children}
-                <div className="text-center text-caption text-foreground-secondary">
+                <div className="text-center text-xs text-muted-foreground">
                   {lunarMonthSpan(calendarMonth.date)}
                 </div>
                 {showLunar && (
-                  <div className="mt-0.5 text-center text-caption text-tool-solid">
+                  <div className="mt-0.5 text-center text-xs text-tool">
                     已选农历 {lunarFullText(selected)}，每年按此重复
                   </div>
                 )}
@@ -183,30 +139,17 @@ export function DatePicker({
             DayButton: ({ children, ...props }) => (
               <CalendarDayButton {...props}>
                 {children}
-                {showLunar && (
-                  <span
-                    className={cn(
-                      'mt-0.5 text-caption font-normal',
-                      !props.modifiers.selected && 'text-foreground-secondary',
-                    )}
-                  >
-                    {lunarCellLabel(props.day.date)}
-                  </span>
-                )}
+                {showLunar && <span>{lunarCellLabel(props.day.date)}</span>}
               </CalendarDayButton>
             ),
           }}
         />
-
-        <div className="mt-3 flex items-center justify-between">
-          <Button variant="ghost" onClick={jumpToday}>
+        <div className="flex justify-end border-t p-2">
+          <Button variant="ghost" size="sm" onClick={() => pick(new Date())}>
             今天
           </Button>
-          <Button className="bg-tool-solid px-8 text-white" onClick={confirm}>
-            确定
-          </Button>
         </div>
-      </dialog>
-    </>
+      </PopoverContent>
+    </Popover>
   )
 }

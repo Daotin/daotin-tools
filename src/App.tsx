@@ -3,6 +3,7 @@ import { createBrowserRouter, Outlet, RouterProvider } from 'react-router'
 import { AppShell } from '@/components/AppShell'
 import { ToolColorProvider } from '@/components/ToolColorProvider'
 import { Toaster } from '@/components/Toast'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { RequireAuth, SessionProvider } from '@/lib/auth'
 import { configError } from '@/lib/supabase'
@@ -50,11 +51,13 @@ const router = createBrowserRouter([
 export function App() {
   if (configError) {
     return (
-      <div className="flex min-h-dvh items-center justify-center p-4">
-        <div className="w-full max-w-[480px] rounded-md bg-surface p-5">
-          <div className="text-heading">缺少 Supabase 配置</div>
-          <p className="mt-2 text-body-sm text-foreground-secondary">{configError}</p>
-        </div>
+      <div className="flex min-h-svh items-center justify-center p-6">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>缺少 Supabase 配置</CardTitle>
+            <CardDescription>{configError}</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     )
   }

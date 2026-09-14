@@ -16,11 +16,11 @@ export function QuitSummary() {
 
   return (
     <>
-      <div className="mt-1 flex items-baseline gap-1">
-        <span className="font-rounded text-stat font-bold">{days}</span>
-        <span className="text-caption text-foreground-secondary">天</span>
+      <div className="flex items-baseline gap-1">
+        <span className="text-2xl font-semibold tracking-tight tabular-nums">{days}</span>
+        <span className="text-xs text-muted-foreground">天</span>
       </div>
-      <div className="mt-auto pt-0.5 text-caption text-foreground-secondary">已坚持</div>
+      <div className="mt-auto pt-0.5 text-xs text-muted-foreground">已坚持</div>
       <svg
         width="60"
         height="28"
@@ -28,6 +28,8 @@ export function QuitSummary() {
         aria-hidden
         className="absolute right-5 bottom-5"
       >
+        {/* 首页不在工具路由下，--chart-tool 是 ToolCard 行内给的：
+            只有工具类（fill-tool 把 var(--chart-tool) 内联）取得到，写 var(--color-tool) 会退回 :root 的值 */}
         {weeks.map((w, i) => {
           const h = Math.max(2, Math.round((w.count / max) * 28))
           return (
@@ -38,7 +40,7 @@ export function QuitSummary() {
               width="6"
               height={h}
               rx="2"
-              fill={w.count > 0 ? 'var(--tool-solid)' : 'var(--background)'}
+              className={w.count > 0 ? 'fill-tool' : 'fill-muted'}
             />
           )
         })}

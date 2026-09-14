@@ -10,9 +10,26 @@ import {
 import { ChevronLeft, ChevronRight, CigaretteOff, LoaderCircle, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatMonthDay } from '@/lib/date'
-import { IconBadge } from '@/components/IconBadge'
 import { Segmented } from '@/components/Segmented'
 import { toast } from '@/components/Toast'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+  ItemDescription,
+} from '@/components/ui/item'
 import type { QuitRelapse } from '@/lib/database.types'
 import { useQuit } from './QuitLayout'
 import { deleteRelapse } from './data'
@@ -63,34 +80,36 @@ function Day({
 }) {
   const today = isSameDay(date, new Date())
   const future = date.getTime() > Date.now()
-  // 今天是实心圆白字，优先于破戒的 soft 底；选中是 2px 圆环，不占底色，两者可以叠
+  // 语汇跟 ui/calendar 一致：选中 bg-primary、今天 bg-accent。
+  // 破戒日另起一行标记（一次一个点，多次写次数），不靠底色，跟选中/今天叠加也看得见。
   return (
     <button
       type="button"
       onClick={onSelect}
       className={cn(
-        'relative flex items-center justify-center',
+        'flex flex-col items-center justify-center gap-0.5 rounded-md outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
         size === 'week' ? 'h-14' : 'h-11',
       )}
     >
       <span
         className={cn(
-          'flex size-8 items-center justify-center rounded-pill font-rounded text-body-sm font-semibold',
-          future && 'text-foreground-secondary',
-          today
-            ? 'bg-tool-solid text-white'
-            : count > 0 && 'bg-red-soft text-red-solid',
-          selected && 'ring-2 ring-tool-solid',
+          'flex size-8 items-center justify-center rounded-md text-sm font-medium tabular-nums',
+          future && 'text-muted-foreground/70',
+          count > 0 && !today && !selected && 'text-destructive',
+          today && !selected && 'bg-accent text-accent-foreground',
+          selected && 'bg-primary text-primary-foreground',
         )}
       >
         {date.getDate()}
       </span>
-      {/* 多次破戒写次数；今天是实心圆盖掉了 soft 底，破戒一次也要靠角标才看得出来 */}
-      {(count > 1 || (today && count > 0)) && (
-        <span className="absolute top-0.5 right-1 flex size-3.5 items-center justify-center rounded-[5px] bg-red-solid font-rounded text-caption leading-none font-semibold text-white">
-          {count}
-        </span>
-      )}
+      <span className="flex h-2.5 items-center justify-center">
+        {count === 1 && <span className="size-1.5 rounded-full bg-destructive" />}
+        {count > 1 && (
+          <span className="text-[10px] leading-none font-medium text-destructive tabular-nums">
+            {count}×
+          </span>
+        )}
+      </span>
     </button>
   )
 }
@@ -174,149 +193,162 @@ export function CalendarPanel() {
 
   return (
     <>
-      <div className="rounded-md bg-surface p-5">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="上一个"
-            onClick={() => shift(-1)}
-            className="flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary"
-          >
-            <ChevronLeft className="size-5" />
-          </button>
-          <span className="min-w-0 truncate font-rounded text-body font-semibold">{title}</span>
-          <button
-            type="button"
-            aria-label="下一个"
-            onClick={() => shift(1)}
-            className="flex size-8 shrink-0 items-center justify-center rounded-pill text-foreground-secondary"
-          >
-            <ChevronRight className="size-5" />
-          </button>
-          <Segmented
-            size="mini"
-            className="ml-auto w-30 shrink-0"
-            value={view}
-            options={[
-              { value: 'week', label: '周' },
-              { value: 'month', label: '月' },
-              { value: 'year', label: '年' },
-            ]}
-            onChange={setView}
-          />
-        </div>
-        <div className="mt-1 text-body-sm text-foreground-secondary">
-          {periodLabel}破戒 {inRange.length} 次
-        </div>
+      <Card className="gap-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="上一个"
+              className="size-8 shrink-0"
+              onClick={() => shift(-1)}
+            >
+              <ChevronLeft className="size-5" />
+            </Button>
+            <span className="min-w-0 truncate">{title}</span>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="下一个"
+              className="size-8 shrink-0"
+              onClick={() => shift(1)}
+            >
+              <ChevronRight className="size-5" />
+            </Button>
+          </CardTitle>
+          <CardDescription>
+            {periodLabel}破戒 {inRange.length} 次
+          </CardDescription>
+          <CardAction>
+            <Segmented
+              size="mini"
+              className="w-30 shrink-0"
+              value={view}
+              options={[
+                { value: 'week', label: '周' },
+                { value: 'month', label: '月' },
+                { value: 'year', label: '年' },
+              ]}
+              onChange={setView}
+            />
+          </CardAction>
+        </CardHeader>
 
-        {view === 'year' ? (
-          /* 格子写死 8px、间距 2px：跟着列宽走的话 390px 上一个迷你月就有 98px 宽，12 个月撑出滚动条 */
-          <div className="mt-2 grid grid-cols-3 justify-items-center gap-3">
-            {Array.from({ length: 12 }, (_, m) => (
-              <div key={m}>
-                <div className="text-caption text-foreground-secondary">{m + 1} 月</div>
-                <div className="mt-1 grid grid-cols-7 gap-0.5">
-                  {monthCells(new Date(anchor.getFullYear(), m, 1)).map((d, i) => (
-                    <i
-                      key={i}
-                      className={cn(
-                        'size-2 rounded-[2px]',
-                        d && (countOf(d) > 0 ? 'bg-red-soft' : 'bg-surface-muted'),
-                      )}
-                    />
-                  ))}
+        <CardContent>
+          {view === 'year' ? (
+            /* 格子写死 8px、间距 2px：跟着列宽走的话 390px 上一个迷你月就有 98px 宽，12 个月撑出滚动条 */
+            <div className="grid grid-cols-3 justify-items-center gap-3">
+              {Array.from({ length: 12 }, (_, m) => (
+                <div key={m}>
+                  <div className="text-xs text-muted-foreground">{m + 1} 月</div>
+                  <div className="mt-1 grid grid-cols-7 gap-0.5">
+                    {monthCells(new Date(anchor.getFullYear(), m, 1)).map((d, i) => (
+                      <i
+                        key={i}
+                        className={cn(
+                          'size-2 rounded-[2px]',
+                          d && (countOf(d) > 0 ? 'bg-destructive' : 'bg-muted'),
+                        )}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-2 grid grid-cols-7">
-            {WEEKDAYS.map((w) => (
-              <div key={w} className="pb-1 text-center text-caption text-foreground-secondary">
-                {w}
-              </div>
-            ))}
-            {(view === 'week'
-              ? Array.from({ length: 7 }, (_, i) => new Date(weekStart.getTime() + i * 86_400_000))
-              : monthCells(anchor)
-            ).map((d, i) =>
-              d ? (
-                <Day
-                  key={i}
-                  date={d}
-                  size={view}
-                  count={countOf(d)}
-                  selected={!!selected && isSameDay(d, selected)}
-                  onSelect={() => setSelected(d)}
-                />
-              ) : (
-                <i key={i} />
-              ),
-            )}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-7">
+              {WEEKDAYS.map((w) => (
+                <div key={w} className="pb-1 text-center text-xs text-muted-foreground">
+                  {w}
+                </div>
+              ))}
+              {(view === 'week'
+                ? Array.from({ length: 7 }, (_, i) => new Date(weekStart.getTime() + i * 86_400_000))
+                : monthCells(anchor)
+              ).map((d, i) =>
+                d ? (
+                  <Day
+                    key={i}
+                    date={d}
+                    size={view}
+                    count={countOf(d)}
+                    selected={!!selected && isSameDay(d, selected)}
+                    onSelect={() => setSelected(d)}
+                  />
+                ) : (
+                  <i key={i} />
+                ),
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {view !== 'year' && selected && (
-        <div className="mt-3 rounded-md bg-surface px-5 py-1">
-          {dayRecords.length === 0 ? (
-            <div className="py-4 text-body-sm text-foreground-secondary">这天没有记录</div>
-          ) : (
-            dayRecords.map((r) => (
-              <div
-                key={r.id}
-                className={cn(
-                  'item-in flex h-15 items-center gap-3',
-                  removingId === r.id && 'item-out',
-                )}
-              >
-                <IconBadge icon={CigaretteOff} size={32} color="red" />
-                <div className="min-w-0 flex-1">
-                  <div className="font-rounded text-body font-semibold">
-                    {hhmm(new Date(r.relapsed_at))}
-                  </div>
-                  {r.note && (
-                    <div className="truncate text-body-sm text-foreground-secondary">{r.note}</div>
-                  )}
-                </div>
-                {confirmId === r.id ? (
-                  <div className="flex shrink-0 items-center gap-3 text-body-sm">
-                    <span className="text-foreground-secondary">删除？</span>
-                    <button
-                      type="button"
-                      disabled={!!deletingId}
-                      onClick={() => setConfirmId('')}
-                    >
-                      取消
-                    </button>
-                    <button
-                      type="button"
-                      className="text-red-solid"
-                      disabled={!!deletingId}
-                      aria-busy={deletingId === r.id || undefined}
-                      onClick={() => onDelete(r.id)}
-                    >
-                      {deletingId === r.id ? (
-                        <LoaderCircle className="size-[18px] animate-spin" />
-                      ) : (
-                        '删除'
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    aria-label="删除"
-                    onClick={() => setConfirmId(r.id)}
-                    className="flex size-8 shrink-0 items-center justify-center text-foreground-secondary"
+        <Card className="mt-4 py-2">
+          <CardContent className="px-2">
+            {dayRecords.length === 0 ? (
+              <div className="px-2 py-4 text-sm text-muted-foreground">这天没有记录</div>
+            ) : (
+              <ItemGroup>
+                {dayRecords.map((r) => (
+                  <Item
+                    key={r.id}
+                    size="sm"
+                    className={cn('item-in', removingId === r.id && 'item-out')}
                   >
-                    <Trash2 className="size-5" />
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+                    <ItemMedia>
+                      <CigaretteOff className="size-4 text-muted-foreground" />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle className="tabular-nums">{hhmm(new Date(r.relapsed_at))}</ItemTitle>
+                      {r.note && <ItemDescription>{r.note}</ItemDescription>}
+                    </ItemContent>
+                    <ItemActions>
+                      {confirmId === r.id ? (
+                        <>
+                          <span className="text-sm text-muted-foreground">删除？</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={!!deletingId}
+                            onClick={() => setConfirmId('')}
+                          >
+                            取消
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-destructive hover:text-destructive"
+                            disabled={!!deletingId}
+                            aria-busy={deletingId === r.id || undefined}
+                            onClick={() => onDelete(r.id)}
+                          >
+                            {deletingId === r.id ? (
+                              <LoaderCircle className="size-4 animate-spin" />
+                            ) : (
+                              '删除'
+                            )}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="删除"
+                          className="text-muted-foreground"
+                          onClick={() => setConfirmId(r.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                    </ItemActions>
+                  </Item>
+                ))}
+              </ItemGroup>
+            )}
+          </CardContent>
+        </Card>
       )}
     </>
   )

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { CigaretteOff } from 'lucide-react'
-import { HeroCard } from '@/components/HeroCard'
-import { IconBadge } from '@/components/IconBadge'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -13,7 +12,9 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import { CalendarPanel } from './QuitCalendar'
 import { useQuit } from './QuitLayout'
 import { addRelapse, createItem } from './data'
@@ -49,15 +50,16 @@ export function QuitTimer() {
     return (
       <Empty>
         <EmptyHeader>
-          <EmptyMedia>
-            <IconBadge icon={CigaretteOff} size={56} />
+          <EmptyMedia variant="icon">
+            <CigaretteOff className="text-tool" />
           </EmptyMedia>
           <EmptyTitle>准备好了吗</EmptyTitle>
           <EmptyDescription>点击开始，从现在计时</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button
-            className="px-8 bg-tool-solid text-white"
+            size="lg"
+            className="px-8"
             loading={busy}
             onClick={async () => {
               setBusy(true)
@@ -105,38 +107,54 @@ export function QuitTimer() {
   return (
     <div className="flex flex-1 flex-col xl:flex-row xl:items-start xl:gap-6">
       <div className="flex flex-1 flex-col xl:min-w-0">
-        <HeroCard>
-          <IconBadge icon={CigaretteOff} size={56} />
-          <div className="mt-4 text-caption text-foreground-secondary">已坚持</div>
-          <div className="flex items-baseline gap-1">
-            <span className="font-rounded text-display">{stats.currentDays}</span>
-            <span className="text-caption text-foreground-secondary">天</span>
+        <Card className="fade-in">
+          <CardContent>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CigaretteOff className="size-4 text-tool" />
+            已坚持
           </div>
-          <div className="mt-1 font-rounded text-display-sm">{formatClock(stats.currentMs)}</div>
-          <div className="mt-1 text-body-sm text-foreground-secondary">
+          <div className="mt-3 flex items-baseline gap-1">
+            <span className="text-5xl font-bold tracking-tight tabular-nums">
+              {stats.currentDays}
+            </span>
+            <span className="text-sm text-muted-foreground">天</span>
+          </div>
+          <div className="mt-1 text-3xl font-semibold tracking-tight tabular-nums">
+            {formatClock(stats.currentMs)}
+          </div>
+          <div className="mt-2 text-sm text-muted-foreground">
             {formatStart(stats.streakStart)}
           </div>
-        </HeroCard>
+          </CardContent>
+        </Card>
 
-        <div className="mt-3 grid grid-cols-2 gap-4 rounded-md bg-surface p-5">
-          <div>
-            <div className="text-caption text-foreground-secondary">最长记录</div>
-            <div className="flex items-baseline gap-1">
-              <span className="font-rounded text-stat">{stats.longestDays}</span>
-              <span className="text-caption text-foreground-secondary">天</span>
+        <Card className="mt-4">
+          <CardContent className="flex items-stretch">
+            <div className="flex-1">
+              <div className="text-sm text-muted-foreground">最长记录</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                  {stats.longestDays}
+                </span>
+                <span className="text-sm text-muted-foreground">天</span>
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-caption text-foreground-secondary">总破戒</div>
-            <div className="flex items-baseline gap-1">
-              <span className="font-rounded text-stat">{stats.relapseCount}</span>
-              <span className="text-caption text-foreground-secondary">次</span>
+            <Separator orientation="vertical" className="mx-4" />
+            <div className="flex-1">
+              <div className="text-sm text-muted-foreground">总破戒</div>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-3xl font-semibold tracking-tight tabular-nums">
+                  {stats.relapseCount}
+                </span>
+                <span className="text-sm text-muted-foreground">次</span>
+              </div>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         <Button
           variant="destructive"
+          size="lg"
           className="mt-auto w-full xl:mt-6 xl:w-50"
           onClick={() => {
             setAt(toLocalInput(new Date()))
@@ -153,36 +171,39 @@ export function QuitTimer() {
       </div>
 
       <Sheet open={open} onClose={() => setOpen(false)} title="记录破戒">
-        <div className="mt-4">
-          <label htmlFor="quit-at" className="text-caption text-foreground-secondary">
-            时间
-          </label>
-          <Input
-            id="quit-at"
-            type="datetime-local"
-            max={toLocalInput(new Date(now))}
-            className="mt-1 border-0 bg-background font-rounded"
-            value={at}
-            onChange={(e) => setAt(e.target.value)}
-          />
-        </div>
-        <div className="mt-3">
-          <label htmlFor="quit-note" className="text-caption text-foreground-secondary">
-            备注（可选）
-          </label>
-          <Input
-            id="quit-note"
-            className="mt-1 border-0 bg-background"
-            placeholder="写点什么"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </div>
-        <div className="mt-5 flex gap-3">
-          <Button variant="ghost" className="flex-1" onClick={() => setOpen(false)}>
+        <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="quit-at">时间</FieldLabel>
+            <Input
+              id="quit-at"
+              type="datetime-local"
+              max={toLocalInput(new Date(now))}
+              className="tabular-nums"
+              value={at}
+              onChange={(e) => setAt(e.target.value)}
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="quit-note">备注（可选）</FieldLabel>
+            <Input
+              id="quit-note"
+              placeholder="写点什么"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
+        </FieldGroup>
+        <div className="mt-6 flex gap-3">
+          <Button variant="outline" size="lg" className="flex-1" onClick={() => setOpen(false)}>
             取消
           </Button>
-          <Button variant="destructive" className="flex-1" loading={busy} onClick={onConfirm}>
+          <Button
+            variant="destructive"
+            size="lg"
+            className="flex-1"
+            loading={busy}
+            onClick={onConfirm}
+          >
             确认破戒
           </Button>
         </div>

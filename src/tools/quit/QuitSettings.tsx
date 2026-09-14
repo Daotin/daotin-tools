@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { importAntix, parseAntixImport } from './data'
 
 export function QuitSettings() {
@@ -25,29 +28,40 @@ export function QuitSettings() {
 
   return (
     <>
-      <h1 className="mt-1 mb-4 font-rounded text-title">戒烟设置</h1>
-      <div className="rounded-md bg-surface p-5">
-        <div className="text-heading">导入 AntiX 数据</div>
-        <input
-          type="file"
-          accept="application/json,.json"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="mt-4 w-full text-body-sm text-foreground-secondary file:mr-3 file:h-10 file:rounded-pill file:border-0 file:bg-background file:px-4 file:font-rounded file:text-body-sm file:font-semibold file:text-foreground"
-        />
-        <Button
-          className="mt-4 w-full bg-tool-solid text-white"
-          disabled={!file}
-          loading={busy}
-          onClick={onImport}
-        >
-          导入
-        </Button>
-        {result && <p className="mt-3 text-body-sm text-foreground-secondary">{result}</p>}
-        {error && <p className="mt-3 text-body-sm text-red-solid">{error}</p>}
-      </div>
-      <p className="mt-3 text-caption text-foreground-secondary">
-        导入会按原记录 ID 去重，重复导入不会产生重复数据。
-      </p>
+      <h1 className="mt-1 mb-6 text-2xl font-semibold tracking-tight">戒烟设置</h1>
+      <Card>
+        <CardHeader>
+          <CardTitle>导入 AntiX 数据</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="antix-file">备份文件</FieldLabel>
+              <Input
+                id="antix-file"
+                type="file"
+                accept="application/json,.json"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              />
+              <FieldDescription>导入会按原记录 ID 去重，重复导入不会产生重复数据。</FieldDescription>
+            </Field>
+            {error && <FieldError errors={[{ message: error }]} />}
+            <Field>
+              <Button
+                type="button"
+                size="lg"
+                className="w-full"
+                disabled={!file}
+                loading={busy}
+                onClick={onImport}
+              >
+                导入
+              </Button>
+              {result && <FieldDescription>{result}</FieldDescription>}
+            </Field>
+          </FieldGroup>
+        </CardContent>
+      </Card>
     </>
   )
 }

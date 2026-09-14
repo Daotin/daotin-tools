@@ -2,15 +2,12 @@ import { useState } from 'react'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
+import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import type { Period } from '@/lib/database.types'
 import { toDateString } from '@/lib/date'
 import type { PeriodInput } from './data'
-
-/** 卡内输入框：--background 底、无边框。 */
-const field = 'mt-1 border-0 bg-background font-rounded'
 
 /** 今天的 'YYYY-MM-DD'，给 <input type="date"> 的 max 和校验共用。 */
 const todayString = () => toDateString(new Date())
@@ -86,66 +83,70 @@ export function PeriodEditor({
 
   return (
     <Sheet open onClose={onClose} title="编辑记录">
-      <Label htmlFor="period-start" className="mt-4">
-        开始日
-      </Label>
-      <Input
-        id="period-start"
-        type="date"
-        className={field}
-        max={todayString()}
-        value={start}
-        onChange={(e) => setStart(e.target.value)}
-      />
+      <FieldGroup className="gap-4">
+        <Field>
+          <FieldLabel htmlFor="period-start">开始日</FieldLabel>
+          <Input
+            id="period-start"
+            type="date"
+            max={todayString()}
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          />
+        </Field>
 
-      <Label htmlFor="period-end" className="mt-4">
-        结束日
-      </Label>
-      {/* 不禁用：补填时开关本来就是开的，禁用会逼用户先关开关。填了日期就自动关掉"未结束" */}
-      <Input
-        id="period-end"
-        type="date"
-        className={field}
-        max={todayString()}
-        value={end}
-        onChange={(e) => {
-          setEnd(e.target.value)
-          if (e.target.value) setOpen(false)
-        }}
-      />
+        <Field>
+          <FieldLabel htmlFor="period-end">结束日</FieldLabel>
+          {/* 不禁用：补填时开关本来就是开的，禁用会逼用户先关开关。填了日期就自动关掉"未结束" */}
+          <Input
+            id="period-end"
+            type="date"
+            max={todayString()}
+            value={end}
+            onChange={(e) => {
+              setEnd(e.target.value)
+              if (e.target.value) setOpen(false)
+            }}
+          />
+        </Field>
 
-      <label className="mt-2 flex h-12 items-center justify-between">
-        <span className="text-body">未结束</span>
-        <Switch
-          checked={open}
-          onCheckedChange={(next) => {
-            setOpen(next)
-            if (next) setEnd('')
-          }}
-          className="h-6 w-11 data-[state=checked]:bg-tool-solid [&>*]:size-5"
-        />
-      </label>
+        <Field orientation="horizontal">
+          <FieldLabel htmlFor="period-open" className="font-normal">
+            未结束
+          </FieldLabel>
+          <Switch
+            id="period-open"
+            checked={open}
+            onCheckedChange={(next) => {
+              setOpen(next)
+              if (next) setEnd('')
+            }}
+          />
+        </Field>
 
-      {error && <p className="mt-1 text-caption text-red-solid">{error}</p>}
+        {error && <FieldError>{error}</FieldError>}
 
-      <Button
-        className="mt-4 w-full bg-tool-solid text-white"
-        disabled={!!error || !!busy}
-        loading={busy === 'save'}
-        onClick={save}
-      >
-        保存
-      </Button>
-      {/* 行内二次确认：第一次点变成"确定删除？"，再点一次才真删 */}
-      <Button
-        variant="destructive"
-        className="mt-3 w-full"
-        disabled={!!busy}
-        loading={busy === 'delete'}
-        onClick={() => (confirmDelete ? remove() : setConfirmDelete(true))}
-      >
-        {confirmDelete ? '确定删除？' : '删除'}
-      </Button>
+        <Field>
+          <Button
+            className="h-11 w-full"
+            disabled={!!error || !!busy}
+            loading={busy === 'save'}
+            onClick={save}
+          >
+            保存
+          </Button>
+          {/* 行内二次确认：第一次点变成"确定删除？"，再点一次才真删 */}
+          <Button
+            variant="destructive"
+            className="h-11 w-full"
+            disabled={!!busy}
+            loading={busy === 'delete'}
+            onClick={() => (confirmDelete ? remove() : setConfirmDelete(true))}
+          >
+            {confirmDelete ? '确定删除？' : '删除'}
+          </Button>
+        </Field>
+      </FieldGroup>
     </Sheet>
   )
 }

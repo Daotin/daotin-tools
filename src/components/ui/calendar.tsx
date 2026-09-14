@@ -1,85 +1,177 @@
-import { useEffect, useRef, type ComponentProps } from 'react'
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { DayPicker, getDefaultClassNames, type DayButton } from 'react-day-picker'
-import { cn } from '@/lib/cn'
+"use client"
 
-/**
- * shadcn 的 calendar，按 DESIGN.md 重配：颜色全换成项目 token（工具色槽、二级灰），
- * 圆角走 rounded-pill / rounded-sm，不留 dark: 变体（深色由 prefers-color-scheme
- * 和 [data-theme] 换 token 实现，dark: 会误命中）。
- * --cell-size 只管上一月/下一月按钮和标题行的高度，日期格另有固定高度。
- */
+import * as React from "react"
+import { cn } from "cn"
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react"
+import {
+  DayPicker,
+  getDefaultClassNames,
+  type DayButton,
+} from "react-day-picker"
+
+import { Button, buttonVariants } from "@/components/ui/button"
+
 function Calendar({
   className,
   classNames,
-  showOutsideDays = false,
-  captionLayout = 'label',
+  showOutsideDays = true,
+  captionLayout = "label",
+  buttonVariant = "ghost",
+  formatters,
   components,
   ...props
-}: ComponentProps<typeof DayPicker>) {
+}: React.ComponentProps<typeof DayPicker> & {
+  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+}) {
   const defaultClassNames = getDefaultClassNames()
-  const navButton =
-    'flex size-(--cell-size) shrink-0 items-center justify-center rounded-pill text-foreground-secondary aria-disabled:opacity-35'
 
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      className={cn(
+        "group/calendar bg-background p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
+        className
+      )}
       captionLayout={captionLayout}
-      className={cn('[--cell-size:--spacing(8)]', className)}
+      formatters={{
+        formatMonthDropdown: (date) =>
+          date.toLocaleString("default", { month: "short" }),
+        ...formatters,
+      }}
       classNames={{
-        root: cn('w-full', defaultClassNames.root),
-        months: cn('relative flex flex-col', defaultClassNames.months),
-        month: cn('flex w-full flex-col', defaultClassNames.month),
+        root: cn("w-fit", defaultClassNames.root),
+        months: cn(
+          "relative flex flex-col gap-4 md:flex-row",
+          defaultClassNames.months
+        ),
+        month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
         nav: cn(
-          'absolute inset-x-0 top-0 flex w-full items-center justify-between',
-          defaultClassNames.nav,
+          "absolute inset-x-0 top-0 flex w-full items-center justify-between gap-1",
+          defaultClassNames.nav
         ),
-        button_previous: cn(navButton, defaultClassNames.button_previous),
-        button_next: cn(navButton, defaultClassNames.button_next),
+        button_previous: cn(
+          buttonVariants({ variant: buttonVariant }),
+          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+          defaultClassNames.button_previous
+        ),
+        button_next: cn(
+          buttonVariants({ variant: buttonVariant }),
+          "size-(--cell-size) p-0 select-none aria-disabled:opacity-50",
+          defaultClassNames.button_next
+        ),
         month_caption: cn(
-          'flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)',
-          defaultClassNames.month_caption,
+          "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
+          defaultClassNames.month_caption
         ),
-        // 年、月两个下拉：透明的原生 select 盖在标题文字上，点标题就展开
         dropdowns: cn(
-          'flex h-(--cell-size) items-center justify-center gap-2',
-          defaultClassNames.dropdowns,
+          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium",
+          defaultClassNames.dropdowns
         ),
-        dropdown_root: cn('relative', defaultClassNames.dropdown_root),
-        dropdown: cn('absolute inset-0 opacity-0', defaultClassNames.dropdown),
+        dropdown_root: cn(
+          "relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
+          defaultClassNames.dropdown_root
+        ),
+        dropdown: cn(
+          "absolute inset-0 bg-popover opacity-0",
+          defaultClassNames.dropdown
+        ),
         caption_label: cn(
-          'flex items-center gap-1 font-rounded text-body font-semibold whitespace-nowrap tabular-nums select-none',
-          defaultClassNames.caption_label,
+          "font-medium select-none",
+          captionLayout === "label"
+            ? "text-sm"
+            : "flex h-8 items-center gap-1 rounded-md pr-1 pl-2 text-sm [&>svg]:size-3.5 [&>svg]:text-muted-foreground",
+          defaultClassNames.caption_label
         ),
-        month_grid: cn('w-full border-collapse', defaultClassNames.month_grid),
-        weekdays: cn('flex', defaultClassNames.weekdays),
-        // 星期表头用二级灰，不用三级灰（DESIGN.md：三级灰只给禁用态）
+        month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
+        weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
-          'flex-1 pb-1 text-caption font-normal text-foreground-secondary select-none',
-          defaultClassNames.weekday,
+          "flex-1 rounded-md text-[0.8rem] font-normal text-muted-foreground select-none",
+          defaultClassNames.weekday
         ),
-        week: cn('flex w-full', defaultClassNames.week),
-        day: cn('h-12 flex-1 p-0 text-center select-none', defaultClassNames.day),
-        outside: cn('text-foreground-secondary', defaultClassNames.outside),
-        disabled: cn('opacity-35', defaultClassNames.disabled),
-        hidden: cn('invisible', defaultClassNames.hidden),
+        week: cn("mt-2 flex w-full", defaultClassNames.week),
+        week_number_header: cn(
+          "w-(--cell-size) select-none",
+          defaultClassNames.week_number_header
+        ),
+        week_number: cn(
+          "text-[0.8rem] text-muted-foreground select-none",
+          defaultClassNames.week_number
+        ),
+        day: cn(
+          "group/day relative aspect-square h-full w-full p-0 text-center select-none [&:last-child[data-selected=true]_button]:rounded-r-md",
+          props.showWeekNumber
+            ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-md"
+            : "[&:first-child[data-selected=true]_button]:rounded-l-md",
+          defaultClassNames.day
+        ),
+        range_start: cn(
+          "rounded-l-md bg-accent",
+          defaultClassNames.range_start
+        ),
+        range_middle: cn("rounded-none", defaultClassNames.range_middle),
+        range_end: cn("rounded-r-md bg-accent", defaultClassNames.range_end),
+        today: cn(
+          "rounded-md bg-accent text-accent-foreground data-[selected=true]:rounded-none",
+          defaultClassNames.today
+        ),
+        outside: cn(
+          "text-muted-foreground aria-selected:text-muted-foreground",
+          defaultClassNames.outside
+        ),
+        disabled: cn(
+          "text-muted-foreground opacity-50",
+          defaultClassNames.disabled
+        ),
+        hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
       components={{
-        Chevron: ({ className, orientation }) => {
-          const Icon =
-            orientation === 'left' ? ChevronLeft : orientation === 'right' ? ChevronRight : ChevronDown
+        Root: ({ className, rootRef, ...props }) => {
           return (
-            <Icon
-              className={cn(
-                orientation === 'down' ? 'size-4' : 'size-5',
-                'text-foreground-secondary',
-                className,
-              )}
+            <div
+              data-slot="calendar"
+              ref={rootRef}
+              className={cn(className)}
+              {...props}
             />
           )
         },
+        Chevron: ({ className, orientation, ...props }) => {
+          if (orientation === "left") {
+            return (
+              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
+            )
+          }
+
+          if (orientation === "right") {
+            return (
+              <ChevronRightIcon
+                className={cn("size-4", className)}
+                {...props}
+              />
+            )
+          }
+
+          return (
+            <ChevronDownIcon className={cn("size-4", className)} {...props} />
+          )
+        },
         DayButton: CalendarDayButton,
+        WeekNumber: ({ children, ...props }) => {
+          return (
+            <td {...props}>
+              <div className="flex size-(--cell-size) items-center justify-center text-center">
+                {children}
+              </div>
+            </td>
+          )
+        },
         ...components,
       }}
       {...props}
@@ -87,40 +179,41 @@ function Calendar({
   )
 }
 
-/**
- * 日期格：44px 圆内可放多行（公历日 + 农历小字）。
- * 选中是 --tool-solid 实心圆白字，今天是 2px --tool-solid 圆环。
- */
 function CalendarDayButton({
   className,
   day,
   modifiers,
-  children,
   ...props
-}: ComponentProps<typeof DayButton>) {
-  const ref = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
+}: React.ComponentProps<typeof DayButton>) {
+  const defaultClassNames = getDefaultClassNames()
+
+  const ref = React.useRef<HTMLButtonElement>(null)
+  React.useEffect(() => {
     if (modifiers.focused) ref.current?.focus()
   }, [modifiers.focused])
 
   return (
-    <button
+    <Button
       ref={ref}
-      data-day={day.date.toDateString()}
-      className={cn('flex h-12 w-full items-center justify-center outline-none', className)}
+      variant="ghost"
+      size="icon"
+      data-day={day.date.toLocaleDateString()}
+      data-selected-single={
+        modifiers.selected &&
+        !modifiers.range_start &&
+        !modifiers.range_end &&
+        !modifiers.range_middle
+      }
+      data-range-start={modifiers.range_start}
+      data-range-end={modifiers.range_end}
+      data-range-middle={modifiers.range_middle}
+      className={cn(
+        "flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-accent-foreground [&>span]:text-xs [&>span]:opacity-70",
+        defaultClassNames.day,
+        className
+      )}
       {...props}
-    >
-      <span
-        className={cn(
-          'flex size-11 flex-col items-center justify-center rounded-pill font-rounded text-body leading-none font-semibold tabular-nums transition-colors',
-          modifiers.selected
-            ? 'bg-tool-solid text-white'
-            : modifiers.today && 'ring-2 ring-tool-solid',
-        )}
-      >
-        {children}
-      </span>
-    </button>
+    />
   )
 }
 

@@ -1,63 +1,103 @@
-import { cn } from '@/lib/cn'
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "cn"
 
-/** 空状态卡：--tool-soft 底、--radius-md、内边距 24px，文字居中（全站唯一允许居中的文字）。 */
-function Empty({ className, ...props }: React.ComponentProps<'div'>) {
+function Empty({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="empty"
-      /* fade-in：骨架屏换成真内容时淡入一次，和 HeroCard 一致 */
       className={cn(
-        'fade-in flex flex-col items-center gap-3 rounded-md bg-tool-soft p-6 text-center',
-        className,
+        "flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-6 text-center text-balance md:p-12",
+        className
       )}
       {...props}
     />
   )
 }
 
-function EmptyHeader({ className, ...props }: React.ComponentProps<'div'>) {
+function EmptyHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="empty-header"
-      className={cn('flex flex-col items-center', className)}
+      className={cn(
+        "flex max-w-sm flex-col items-center gap-2 text-center",
+        className
+      )}
       {...props}
     />
   )
 }
 
-/** 只负责居中和下方留白，圆形底交给里面的 IconBadge。 */
-function EmptyMedia({ className, ...props }: React.ComponentProps<'div'>) {
+const emptyMediaVariants = cva(
+  "mb-2 flex shrink-0 items-center justify-center [&_svg]:pointer-events-none [&_svg]:shrink-0",
+  {
+    variants: {
+      variant: {
+        default: "bg-transparent",
+        icon: "flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground [&_svg:not([class*='size-'])]:size-6",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+function EmptyMedia({
+  className,
+  variant = "default",
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof emptyMediaVariants>) {
   return (
     <div
-      data-slot="empty-media"
-      className={cn('mb-2 flex shrink-0 items-center justify-center', className)}
+      data-slot="empty-icon"
+      data-variant={variant}
+      className={cn(emptyMediaVariants({ variant, className }))}
       {...props}
     />
   )
 }
 
-function EmptyTitle({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div data-slot="empty-title" className={cn('text-heading', className)} {...props} />
-}
-
-function EmptyDescription({ className, ...props }: React.ComponentProps<'p'>) {
+function EmptyTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <p
-      data-slot="empty-description"
-      className={cn('text-body-sm text-foreground-secondary', className)}
+    <div
+      data-slot="empty-title"
+      className={cn("text-lg font-medium tracking-tight", className)}
       {...props}
     />
   )
 }
 
-function EmptyContent({ className, ...props }: React.ComponentProps<'div'>) {
+function EmptyDescription({ className, ...props }: React.ComponentProps<"p">) {
+  return (
+    <div
+      data-slot="empty-description"
+      className={cn(
+        "text-sm/relaxed text-muted-foreground [&>a]:underline [&>a]:underline-offset-4 [&>a:hover]:text-primary",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function EmptyContent({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="empty-content"
-      className={cn('flex w-full flex-col items-center gap-3', className)}
+      className={cn(
+        "flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance",
+        className
+      )}
       {...props}
     />
   )
 }
 
-export { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent }
+export {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+  EmptyMedia,
+}

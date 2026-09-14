@@ -3,11 +3,17 @@ import { InlineError } from '@/components/InlineError'
 import { PageSkeleton } from '@/components/Skeleton'
 import { differenceInCalendarDays } from 'date-fns'
 import { Droplet } from 'lucide-react'
-import { HeroCard } from '@/components/HeroCard'
-import { IconBadge } from '@/components/IconBadge'
 import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -17,6 +23,15 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item'
 import type { Period } from '@/lib/database.types'
 import { PeriodCalendar } from './PeriodCalendar'
 import { PeriodEditor, validate } from './PeriodEditor'
@@ -45,8 +60,8 @@ function rangeText(period: Period, forgot = false) {
 
 /** 事件小圆点的颜色，和日历图例一致。 */
 const DOT: Record<Upcoming['kind'], string> = {
-  period: 'bg-red-solid',
-  ovulation: 'bg-teal-solid',
+  period: 'bg-destructive/60',
+  ovulation: 'bg-tool',
 }
 
 /** 首次使用：没有任何记录时代替 Hero Card。 */
@@ -54,10 +69,10 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
   const [date, setDate] = useState(() => toDateString(new Date()))
   const [busy, setBusy] = useState(false)
   return (
-    <Empty>
+    <Empty className="border border-dashed">
       <EmptyHeader>
-        <EmptyMedia>
-          <IconBadge icon={Droplet} size={56} />
+        <EmptyMedia variant="icon">
+          <Droplet />
         </EmptyMedia>
         <EmptyTitle>先填一次上次经期开始日</EmptyTitle>
         <EmptyDescription>填完就能算出下次大概什么时候来</EmptyDescription>
@@ -65,13 +80,12 @@ function Guide({ onSave }: { onSave: (date: string) => Promise<void> }) {
       <EmptyContent>
         <Input
           type="date"
-          className="border-0 bg-surface font-rounded"
           max={toDateString(new Date())}
           value={date}
           onChange={(e) => setDate(e.target.value)}
         />
         <Button
-          className="w-full bg-tool-solid text-white"
+          className="h-11 w-full"
           disabled={!date}
           loading={busy}
           onClick={async () => {
@@ -104,89 +118,96 @@ function Hero({
   if (!status) return null
   const forgot = prediction.cycles.find((c) => c.forgot)?.period
   return (
-    <HeroCard>
-      <IconBadge icon={Droplet} size={56} />
-      <div className="mt-4 text-caption text-foreground-secondary">{status.caption}</div>
-      {status.value === 0 ? (
-        <div className="font-rounded text-display">今天</div>
-      ) : (
-        <div className="flex items-baseline gap-1">
-          <span className="font-rounded text-display">{status.value}</span>
-          <span className="text-caption text-foreground-secondary">{status.unit}</span>
-        </div>
-      )}
-      <div className="mt-0.5 text-heading">{status.title}</div>
+    <Card className="fade-in gap-4">
+      <CardHeader>
+        <CardDescription className="flex items-center gap-1.5">
+          <Droplet className="size-4 text-tool" />
+          {status.caption}
+        </CardDescription>
+        <CardTitle className="flex items-baseline gap-1.5">
+          <span className="text-5xl font-bold tracking-tight tabular-nums">
+            {status.value === 0 ? '今天' : status.value}
+          </span>
+          {status.value !== 0 && (
+            <span className="text-sm font-normal text-muted-foreground">{status.unit}</span>
+          )}
+        </CardTitle>
+        <CardDescription className="text-base text-foreground">{status.title}</CardDescription>
+      </CardHeader>
 
-      {status.rest.length > 0 && (
-        <div className="mt-3 flex flex-col gap-1.5 text-caption text-foreground-secondary">
-          {status.rest.map((event) => (
-            <div key={event.title} className="flex items-center gap-1.5">
-              <i className={cn('size-2 shrink-0 rounded-pill', DOT[event.kind])} />
-              <span>{event.title}</span>
-              <span>{formatMonthDay(event.date)}</span>
-              <span>· {event.days === 0 ? '今天' : `${event.days} 天后`}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      <CardContent>
+        {status.rest.length > 0 && (
+          <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+            {status.rest.map((event) => (
+              <div key={event.title} className="flex items-center gap-1.5">
+                <i className={cn('size-2 shrink-0 rounded-full', DOT[event.kind])} />
+                <span>{event.title}</span>
+                <span>{formatMonthDay(event.date)}</span>
+                <span>· {event.days === 0 ? '今天' : `${event.days} 天后`}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {forgot && (
-        <button
-          type="button"
-          className="mt-2 text-left text-caption text-tool-solid"
-          onClick={() => onFix(forgot)}
-        >
-          {formatMonthDay(parseDate(forgot.start_date))}那次还没填结束日
-        </button>
-      )}
+        {forgot && (
+          <Button
+            variant="link"
+            className="h-auto justify-start p-0 text-xs underline"
+            onClick={() => onFix(forgot)}
+          >
+            {formatMonthDay(parseDate(forgot.start_date))}那次还没填结束日
+          </Button>
+        )}
 
-      <div className="mt-3 text-caption text-foreground-secondary">{backtestText(prediction)}</div>
-      <div className="mt-0.5 text-caption text-foreground-secondary">{OVULATION_CAPTION}</div>
-    </HeroCard>
+        <div className="mt-3 text-xs text-muted-foreground">{backtestText(prediction)}</div>
+        <div className="mt-0.5 text-xs text-muted-foreground">{OVULATION_CAPTION}</div>
+      </CardContent>
+    </Card>
   )
 }
 
 function History({ cycles, onPick }: { cycles: Cycle[]; onPick: (period: Period) => void }) {
   return (
-    <div className="rounded-md bg-surface px-5 py-4">
-      <div className="text-heading">历史</div>
-      {cycles.map((cycle) => {
-        const { period, length, counted, forgot } = cycle
-        const days = period.end_date
-          ? differenceInCalendarDays(parseDate(period.end_date), parseDate(period.start_date)) + 1
-          : null
-        // 忘填的那条不写"进行中"，只剩周期信息
-        const parts = [
-          days ? `${days} 天` : forgot ? null : '进行中',
-          length !== null ? `周期 ${length} 天` : null,
-        ].filter(Boolean)
-        return (
-          <button
-            key={period.id}
-            type="button"
-            onClick={() => onPick(period)}
-            className="flex min-h-16 w-full items-center gap-3 py-2 text-left"
-          >
-            <IconBadge icon={Droplet} size={32} variant="soft" />
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-body">{rangeText(period, forgot)}</div>
-              <div className="truncate text-caption text-foreground-secondary">
-                {parts.join(' · ')}
-                {length !== null && !counted && (
-                  <span className="text-foreground-secondary"> 未参与估算</span>
-                )}
-              </div>
-            </div>
-            {/* 整行本来就是打开编辑抽屉的按钮，这里只做视觉提示，不再嵌一个按钮 */}
-            {forgot && (
-              <span className="shrink-0 rounded-pill bg-tool-soft px-2.5 py-1 text-caption text-tool-solid">
-                补填
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
+    <>
+      <h2 className="mb-3 text-lg font-semibold">历史</h2>
+      <ItemGroup className="gap-2">
+        {cycles.map((cycle) => {
+          const { period, length, counted, forgot } = cycle
+          const days = period.end_date
+            ? differenceInCalendarDays(parseDate(period.end_date), parseDate(period.start_date)) + 1
+            : null
+          // 忘填的那条不写"进行中"，只剩周期信息
+          const parts = [
+            days ? `${days} 天` : forgot ? null : '进行中',
+            length !== null ? `周期 ${length} 天` : null,
+          ].filter(Boolean)
+          return (
+            <Item
+              key={period.id}
+              asChild
+              variant="outline"
+              size="sm"
+              className="hover:bg-accent/50"
+            >
+              <button type="button" className="text-left" onClick={() => onPick(period)}>
+                <ItemMedia>
+                  <Droplet className="size-4 text-muted-foreground" />
+                </ItemMedia>
+                <ItemContent>
+                  <ItemTitle>{rangeText(period, forgot)}</ItemTitle>
+                  <ItemDescription>{parts.join(' · ')}</ItemDescription>
+                </ItemContent>
+                {/* 整行本来就是打开编辑抽屉的按钮，这里只做视觉提示，不再嵌一个按钮 */}
+                <ItemActions>
+                  {length !== null && !counted && <Badge variant="outline">未参与估算</Badge>}
+                  {forgot && <Badge variant="secondary">补填</Badge>}
+                </ItemActions>
+              </button>
+            </Item>
+          )
+        })}
+      </ItemGroup>
+    </>
   )
 }
 
@@ -249,7 +270,7 @@ export function PeriodPage() {
 
   return (
     <>
-      <h1 className="mt-1 mb-4 font-rounded text-title">经期</h1>
+      <h1 className="mt-1 mb-4 text-2xl font-semibold tracking-tight">经期</h1>
       <InlineError message={error} onRetry={() => void reload()} />
 
       {!periods ? (
@@ -281,7 +302,7 @@ export function PeriodPage() {
             />
           </div>
           {list.length > 0 && prediction && (
-            <div className="mt-3 xl:mt-0 xl:w-80 xl:shrink-0">
+            <div className="mt-6 xl:mt-0 xl:w-80 xl:shrink-0">
               <History cycles={prediction.cycles} onPick={setEditing} />
             </div>
           )}
@@ -295,24 +316,80 @@ export function PeriodPage() {
           onClose={() => setSelected(null)}
           title={formatMonthDay(selected)}
         >
-          {future && (
-            <div className="mt-1 text-caption text-foreground-secondary">不能标记未来日期</div>
-          )}
-          {owner ? (
-            <>
-              <div className="mt-1 text-body-sm text-foreground-secondary">
-                这天属于记录：{rangeText(owner)}
-              </div>
-              {/* 结束日未填的记录：按预测长度画出的区间里点某天，最常见的意图就是"今天结束了" */}
-              {!owner.end_date && selected > parseDate(owner.start_date) && (
+          <div className="flex flex-col gap-3">
+            {future && <p className="text-sm text-muted-foreground">不能标记未来日期</p>}
+            {owner ? (
+              <>
+                <p className="text-sm text-muted-foreground">这天属于记录：{rangeText(owner)}</p>
+                {/* 结束日未填的记录：按预测长度画出的区间里点某天，最常见的意图就是"今天结束了" */}
+                {!owner.end_date && selected > parseDate(owner.start_date) && (
+                  <Button
+                    className="h-11 w-full"
+                    disabled={!!busy || future}
+                    loading={busy === 'end'}
+                    onClick={async () => {
+                      const ok = await write('end', () =>
+                        updatePeriod(owner.id, {
+                          start_date: owner.start_date,
+                          end_date: toDateString(selected),
+                        }),
+                      )
+                      if (!ok) return
+                      setSelected(null)
+                      toast('已记录')
+                    }}
+                  >
+                    标记为经期结束
+                  </Button>
+                )}
                 <Button
-                  className="mt-5 w-full bg-tool-solid text-white"
+                  variant="outline"
+                  className="h-11 w-full"
+                  onClick={() => {
+                    setSelected(null)
+                    setEditing(owner)
+                  }}
+                >
+                  编辑这条记录
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="h-11 w-full"
+                  disabled={!!busy}
+                  loading={busy === 'delete'}
+                  onClick={async () => {
+                    if (!confirmDelete) {
+                      setConfirmDelete(true)
+                      return
+                    }
+                    if (!(await write('delete', () => deletePeriod(owner.id)))) return
+                    setSelected(null)
+                    toast('已删除')
+                  }}
+                >
+                  {confirmDelete ? '确定删除？' : '删除这条记录'}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  className="h-11 w-full"
                   disabled={!!busy || future}
+                  loading={busy === 'start'}
+                  onClick={() => markStart(selected)}
+                >
+                  标记为经期开始
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-11 w-full"
+                  disabled={!!busy || future || !openRecord}
                   loading={busy === 'end'}
                   onClick={async () => {
+                    if (!openRecord) return
                     const ok = await write('end', () =>
-                      updatePeriod(owner.id, {
-                        start_date: owner.start_date,
+                      updatePeriod(openRecord.id, {
+                        start_date: openRecord.start_date,
                         end_date: toDateString(selected),
                       }),
                     )
@@ -323,71 +400,14 @@ export function PeriodPage() {
                 >
                   标记为经期结束
                 </Button>
-              )}
-              {/* 不用 variant="secondary"：--secondary 在 :root 上就把 --tool-soft 代入成默认色了 */}
-              <Button
-                className="mt-5 w-full bg-tool-soft text-tool-solid"
-                onClick={() => {
-                  setSelected(null)
-                  setEditing(owner)
-                }}
-              >
-                编辑这条记录
-              </Button>
-              <Button
-                variant="destructive"
-                className="mt-3 w-full"
-                disabled={!!busy}
-                loading={busy === 'delete'}
-                onClick={async () => {
-                  if (!confirmDelete) {
-                    setConfirmDelete(true)
-                    return
-                  }
-                  if (!(await write('delete', () => deletePeriod(owner.id)))) return
-                  setSelected(null)
-                  toast('已删除')
-                }}
-              >
-                {confirmDelete ? '确定删除？' : '删除这条记录'}
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                className="mt-5 w-full bg-tool-solid text-white"
-                disabled={!!busy || future}
-                loading={busy === 'start'}
-                onClick={() => markStart(selected)}
-              >
-                标记为经期开始
-              </Button>
-              <Button
-                className="mt-3 w-full bg-tool-soft text-tool-solid"
-                disabled={!!busy || future || !openRecord}
-                loading={busy === 'end'}
-                onClick={async () => {
-                  if (!openRecord) return
-                  const ok = await write('end', () =>
-                    updatePeriod(openRecord.id, {
-                      start_date: openRecord.start_date,
-                      end_date: toDateString(selected),
-                    }),
-                  )
-                  if (!ok) return
-                  setSelected(null)
-                  toast('已记录')
-                }}
-              >
-                标记为经期结束
-              </Button>
-              {!openRecord && !future && (
-                <div className="mt-2 text-caption text-foreground-secondary">
-                  没有还没结束的经期记录，先标记一次开始
-                </div>
-              )}
-            </>
-          )}
+                {!openRecord && !future && (
+                  <p className="text-xs text-muted-foreground">
+                    没有还没结束的经期记录，先标记一次开始
+                  </p>
+                )}
+              </>
+            )}
+          </div>
         </Sheet>
       )}
 

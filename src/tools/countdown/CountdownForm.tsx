@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Check, LoaderCircle, X } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { cn } from '@/lib/cn'
-import { SiteAction, roundButton } from '@/components/AppShell'
+import { SiteAction } from '@/components/AppShell'
 import { DatePicker } from '@/components/DatePicker'
 import { Segmented } from '@/components/Segmented'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import type { CountdownEvent } from '@/lib/database.types'
@@ -24,9 +25,6 @@ const REPEATS = (['none', 'yearly', 'monthly', 'weekly'] as const).map((value) =
 
 const NEW_CATEGORY = '__new__'
 
-/** 卡内输入框：--background 底、无边框。 */
-const field = 'mt-1 border-0 bg-background'
-
 function emptyForm(): EventInput {
   return {
     title: '',
@@ -40,23 +38,23 @@ function emptyForm(): EventInput {
 }
 
 function SwitchRow({
+  id,
   text,
   checked,
   onChange,
 }: {
+  id: string
   text: string
   checked: boolean
   onChange: (value: boolean) => void
 }) {
   return (
-    <label className="mt-2 flex h-12 items-center justify-between">
-      <span className="text-body">{text}</span>
-      <Switch
-        checked={checked}
-        onCheckedChange={onChange}
-        className="h-6 w-11 data-[state=checked]:bg-tool-solid [&>*]:size-5"
-      />
-    </label>
+    <Field orientation="horizontal">
+      <FieldLabel htmlFor={id} className="font-normal">
+        {text}
+      </FieldLabel>
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </Field>
   )
 }
 
@@ -129,21 +127,17 @@ export function CountdownForm() {
     }
   }
 
-  /* 站点栏的圆形 ✓ 不是 Button 组件，保存时把图标换成同尺寸的转圈，尺寸不变 */
   const saveButton = (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="icon"
       aria-label="保存"
       disabled={!valid || !!busy}
-      aria-busy={busy === 'save' || undefined}
+      loading={busy === 'save'}
       onClick={onSave}
-      className={cn(
-        roundButton,
-        valid ? 'bg-tool-solid text-white' : 'bg-surface text-foreground-tertiary',
-      )}
     >
-      {busy === 'save' ? <LoaderCircle className="animate-spin" /> : <Check />}
-    </button>
+      <Check />
+    </Button>
   )
 
   return (
@@ -160,127 +154,144 @@ export function CountdownForm() {
       <div
         className={cn(
           'lg:fixed lg:inset-y-0 lg:right-0 lg:z-40 lg:w-100 lg:overflow-y-auto',
-          'lg:rounded-l-lg lg:bg-surface-raised lg:p-6 lg:shadow-raised',
+          'lg:rounded-l-xl lg:border-l lg:bg-popover lg:p-6 lg:shadow-lg',
         )}
       >
         <div className="mt-1 mb-4 flex items-center justify-between lg:mt-0">
-          <h1 className="font-rounded text-title">{id ? '编辑' : '新建'}</h1>
-          <button
-            type="button"
+          <h1 className="text-2xl font-semibold tracking-tight">{id ? '编辑' : '新建'}</h1>
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="关闭"
             onClick={back}
-            className={cn(roundButton, 'hidden size-8 lg:flex')}
+            className="hidden lg:flex"
           >
             <X />
-          </button>
+          </Button>
         </div>
 
-        <div className="rounded-md bg-surface p-5 lg:rounded-none lg:bg-transparent lg:p-0">
-          <Label htmlFor="countdown-title">标题</Label>
-          <Input
-            id="countdown-title"
-            className={field}
-            placeholder="写点什么"
-            value={form.title}
-            onChange={(e) => patch({ title: e.target.value })}
-          />
+        <Card className="lg:rounded-none lg:border-0 lg:bg-transparent lg:py-0 lg:shadow-none">
+          <CardContent className="lg:px-0">
+            <FieldGroup className="gap-5">
+              <Field>
+                <FieldLabel htmlFor="countdown-title">标题</FieldLabel>
+                <Input
+                  id="countdown-title"
+                  placeholder="写点什么"
+                  value={form.title}
+                  onChange={(e) => patch({ title: e.target.value })}
+                />
+              </Field>
 
-          {/* DatePicker / Segmented / 分类是一组控件而不是单个输入框，没有可指的 id，
-              用 asChild 渲染成 span，避免留下指不到控件的空 label */}
-          <Label asChild className="mt-4">
-            <span>日期</span>
-          </Label>
-          <DatePicker
-            className="mt-1"
-            value={form.date}
-            showLunar={form.is_lunar}
-            onChange={(date) => patch({ date })}
-          />
+              {/* DatePicker / Segmented / 分类是一组控件而不是单个输入框，没有可指的 id，
+                  用 asChild 渲染成 span，避免留下指不到控件的空 label */}
+              <Field>
+                <FieldLabel asChild>
+                  <span>日期</span>
+                </FieldLabel>
+                <DatePicker
+                  value={form.date}
+                  showLunar={form.is_lunar}
+                  onChange={(date) => patch({ date })}
+                />
+              </Field>
 
-          <SwitchRow
-            text="按农历"
-            checked={form.is_lunar}
-            onChange={(is_lunar) => patch({ is_lunar })}
-          />
-
-          <Label asChild className="mt-2">
-            <span>重复</span>
-          </Label>
-          <Segmented
-            size="mini"
-            className="mt-1 h-9"
-            value={form.repeat}
-            options={REPEATS.map((r) => ({
-              ...r,
-              // 农历只允许不重复或每年
-              disabled: form.is_lunar && (r.value === 'monthly' || r.value === 'weekly'),
-            }))}
-            onChange={(repeat) => patch({ repeat })}
-          />
-
-          <Label asChild className="mt-4">
-            <span>分类</span>
-          </Label>
-          <div className="-mx-5 mt-1 flex gap-2 overflow-x-auto px-5 [scrollbar-width:none] lg:mx-0 lg:px-0">
-            {categories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => {
-                  setNewCategory(null)
-                  patch({ category })
-                }}
-                className={cn(
-                  'h-9 shrink-0 rounded-pill px-4 font-rounded text-body-sm font-semibold',
-                  category === form.category && newCategory === null
-                    ? 'bg-tool-soft text-tool-solid'
-                    : 'bg-background text-foreground-secondary',
-                )}
-              >
-                {category}
-              </button>
-            ))}
-            {newCategory === null ? (
-              <button
-                key={NEW_CATEGORY}
-                type="button"
-                onClick={() => setNewCategory('')}
-                className="h-9 shrink-0 rounded-pill bg-background px-4 font-rounded text-body-sm font-semibold text-foreground-secondary"
-              >
-                + 新分类
-              </button>
-            ) : (
-              <input
-                autoFocus
-                placeholder="新分类"
-                value={newCategory}
-                onChange={(e) => {
-                  setNewCategory(e.target.value)
-                  patch({ category: e.target.value })
-                }}
-                className="h-9 w-28 shrink-0 rounded-pill bg-tool-soft px-4 font-rounded text-body-sm font-semibold text-tool-solid outline-none placeholder:text-foreground-secondary"
+              <SwitchRow
+                id="countdown-lunar"
+                text="按农历"
+                checked={form.is_lunar}
+                onChange={(is_lunar) => patch({ is_lunar })}
               />
-            )}
-          </div>
 
-          <SwitchRow text="置顶" checked={form.pinned} onChange={(pinned) => patch({ pinned })} />
+              <Field>
+                <FieldLabel asChild>
+                  <span>重复</span>
+                </FieldLabel>
+                <Segmented
+                  size="mini"
+                  className="h-9"
+                  value={form.repeat}
+                  options={REPEATS.map((r) => ({
+                    ...r,
+                    // 农历只允许不重复或每年
+                    disabled: form.is_lunar && (r.value === 'monthly' || r.value === 'weekly'),
+                  }))}
+                  onChange={(repeat) => patch({ repeat })}
+                />
+              </Field>
 
-          <Label htmlFor="countdown-note" className="mt-2">
-            备注
-          </Label>
-          <Textarea
-            id="countdown-note"
-            rows={3}
-            className="mt-1"
-            placeholder="写点什么"
-            value={form.note ?? ''}
-            onChange={(e) => patch({ note: e.target.value })}
-          />
-        </div>
+              <Field>
+                <FieldLabel asChild>
+                  <span>分类</span>
+                </FieldLabel>
+                <div className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 [scrollbar-width:none] lg:mx-0 lg:px-0">
+                  {categories.map((category) => (
+                    <Button
+                      key={category}
+                      type="button"
+                      size="sm"
+                      variant={
+                        category === form.category && newCategory === null ? 'default' : 'outline'
+                      }
+                      className="shrink-0 rounded-full"
+                      onClick={() => {
+                        setNewCategory(null)
+                        patch({ category })
+                      }}
+                    >
+                      {category}
+                    </Button>
+                  ))}
+                  {newCategory === null ? (
+                    <Button
+                      key={NEW_CATEGORY}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0 rounded-full"
+                      onClick={() => setNewCategory('')}
+                    >
+                      + 新分类
+                    </Button>
+                  ) : (
+                    <Input
+                      autoFocus
+                      placeholder="新分类"
+                      value={newCategory}
+                      onChange={(e) => {
+                        setNewCategory(e.target.value)
+                        patch({ category: e.target.value })
+                      }}
+                      className="h-8 w-28 shrink-0 rounded-full"
+                    />
+                  )}
+                </div>
+              </Field>
+
+              <SwitchRow
+                id="countdown-pinned"
+                text="置顶"
+                checked={form.pinned}
+                onChange={(pinned) => patch({ pinned })}
+              />
+
+              <Field>
+                <FieldLabel htmlFor="countdown-note">备注</FieldLabel>
+                <Textarea
+                  id="countdown-note"
+                  rows={3}
+                  placeholder="写点什么"
+                  value={form.note ?? ''}
+                  onChange={(e) => patch({ note: e.target.value })}
+                />
+              </Field>
+            </FieldGroup>
+          </CardContent>
+        </Card>
 
         {/* 电脑端面板底部的保存按钮；手机上用站点栏的 ✓ */}
         <Button
-          className="mt-5 hidden w-full bg-tool-solid text-white lg:flex"
+          className="mt-5 hidden w-full lg:flex"
           disabled={!valid || !!busy}
           loading={busy === 'save'}
           onClick={onSave}
@@ -292,7 +303,7 @@ export function CountdownForm() {
         {id && (
           <Button
             variant="destructive"
-            className="mt-3 w-full"
+            className="mt-3 h-11 w-full lg:h-9"
             disabled={!!busy}
             loading={busy === 'delete'}
             onClick={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}

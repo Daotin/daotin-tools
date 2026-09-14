@@ -31,7 +31,7 @@ export function QuitLayout() {
   return (
     <>
       <div className="mt-1 mb-3 flex flex-col lg:mb-4 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
-        <h1 className="mb-4 font-rounded text-title lg:mb-0">戒烟</h1>
+        <h1 className="mb-4 text-2xl font-semibold tracking-tight lg:mb-0">戒烟</h1>
         <Segmented
           value={SEGMENTS.find((s) => s.value === pathname)?.value ?? '/quit'}
           options={SEGMENTS}

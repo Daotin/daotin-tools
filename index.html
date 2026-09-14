@@ -5,13 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="icon" href="/icons/icon-192.png" />
-    <meta name="theme-color" content="#f2f2fb" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <title>Daotin 的工具箱</title>
     <script>
-      // 尽早套上手动选的主题，避免深色下先闪一下白屏。跟随系统时不写属性，交给 prefers-color-scheme
+      // 尽早套上 dark class（shadcn 的深色约定），避免深色下先闪一下白屏。
+      // 三态存在 dt:theme：system / light / dark，system 时看系统偏好。
       try {
         var t = localStorage.getItem('dt:theme')
-        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t
+        var dark =
+          t === 'dark' ||
+          (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        document.documentElement.classList.toggle('dark', dark)
+        document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
       } catch (e) {}
     </script>
   </head>

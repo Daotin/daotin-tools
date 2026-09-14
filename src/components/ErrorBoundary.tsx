@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { Button } from './ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 
 /**
  * 兜住渲染期抛出的异常。最常见的是发了新版之后，旧页面去加载已经不存在的 chunk，
@@ -15,12 +16,14 @@ export class ErrorBoundary extends Component<{ children: React.ReactNode }, { fa
   render() {
     if (!this.state.failed) return this.props.children
     return (
-      <div className="rounded-md bg-surface p-5">
-        <div className="text-heading">页面加载失败</div>
-        <Button className="mt-4" onClick={() => location.reload()}>
-          刷新
-        </Button>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>页面加载失败</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={() => location.reload()}>刷新</Button>
+        </CardContent>
+      </Card>
     )
   }
 }

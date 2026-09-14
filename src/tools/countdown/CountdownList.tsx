@@ -3,10 +3,17 @@ import { Link, useLocation } from 'react-router'
 import { InlineError } from '@/components/InlineError'
 import { PageSkeleton } from '@/components/Skeleton'
 import { cn } from '@/lib/cn'
-import { SiteAction, roundButton } from '@/components/AppShell'
-import { HeroCard } from '@/components/HeroCard'
-import { IconBadge } from '@/components/IconBadge'
+import { SiteAction } from '@/components/AppShell'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -15,14 +22,28 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item'
 import type { CountdownEvent } from '@/lib/database.types'
 import { useEvents } from './data'
 import type { Entry } from './rules'
 import { REPEAT_LABEL, formatMonthDay, lunarText, parseDate, sortEvents } from './rules'
 
 /** 重复事件用循环图标，一次性用日历图标。 */
-const eventIcon = (event: CountdownEvent) =>
-  event.repeat === 'none' ? CalendarDays : Repeat
+function EventIcon({ event, className }: { event: CountdownEvent; className?: string }) {
+  return event.repeat === 'none' ? (
+    <CalendarDays className={className} />
+  ) : (
+    <Repeat className={className} />
+  )
+}
 
 /** 目标日期文字：农历事件显示农历，公历显示月日。 */
 function dateText(event: CountdownEvent) {
@@ -39,29 +60,34 @@ function rowMeta({ event, occurrence }: Entry) {
   ].join(' · ')
 }
 
-/** 天数 + 单位；今天不显示数字，显示 orange solid 的"今天"。 */
+/** 天数 + 单位；今天不显示数字，显示强调色的"今天"。 */
 function Days({ days, size }: { days: number; size: 'hero' | 'row' }) {
+  const hero = size === 'hero'
   if (days === 0) {
-    // 不走 cn：tailwind-merge 会把自定义字号 text-stat 和 text-tool-solid 当成同一组，吞掉颜色
     return (
-      <div className={`font-rounded font-bold text-tool-solid ${size === 'hero' ? 'text-display' : 'text-stat'}`}>
+      <div
+        className={cn(
+          'font-bold tracking-tight text-primary',
+          hero ? 'text-5xl' : 'text-2xl',
+        )}
+      >
         今天
       </div>
     )
   }
   const unit = days > 0 ? '天后' : '天前'
-  if (size === 'hero') {
+  if (hero) {
     return (
       <div className="flex items-baseline gap-1">
-        <span className="font-rounded text-display">{Math.abs(days)}</span>
-        <span className="text-caption text-foreground-secondary">{unit}</span>
+        <span className="text-5xl font-bold tracking-tight tabular-nums">{Math.abs(days)}</span>
+        <span className="text-xs text-muted-foreground">{unit}</span>
       </div>
     )
   }
   return (
     <div className="text-right">
-      <div className="font-rounded text-stat font-bold">{Math.abs(days)}</div>
-      <div className="text-caption text-foreground-secondary">{unit}</div>
+      <div className="text-2xl font-semibold tracking-tight tabular-nums">{Math.abs(days)}</div>
+      <div className="text-xs text-muted-foreground">{unit}</div>
     </div>
   )
 }
@@ -69,33 +95,35 @@ function Days({ days, size }: { days: number; size: 'hero' | 'row' }) {
 function Row({ entry, search }: { entry: Entry; search: string }) {
   const { event, occurrence } = entry
   return (
-    <Link
-      to={{ pathname: `/countdown/${event.id}`, search }}
-      viewTransition
-      className="item-in flex min-h-16 items-center gap-3 py-2"
-    >
-      <IconBadge icon={eventIcon(event)} size={32} variant="soft" />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-body">{event.title}</div>
-        <div className="truncate text-caption text-foreground-secondary">{rowMeta(entry)}</div>
-      </div>
-      <Days days={occurrence.days} size="row" />
-    </Link>
+    <Item asChild variant="outline" size="sm" className="item-in hover:bg-accent/50">
+      <Link to={{ pathname: `/countdown/${event.id}`, search }} viewTransition>
+        <ItemMedia>
+          <EventIcon event={event} className="size-4 text-muted-foreground" />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle className="max-w-full truncate">{event.title}</ItemTitle>
+          <ItemDescription className="truncate text-xs">{rowMeta(entry)}</ItemDescription>
+        </ItemContent>
+        <ItemActions>
+          <Days days={occurrence.days} size="row" />
+        </ItemActions>
+      </Link>
+    </Item>
   )
 }
 
 function EmptyState({ search }: { search: string }) {
   return (
-    <Empty>
+    <Empty className="border">
       <EmptyHeader>
-        <EmptyMedia>
-          <IconBadge icon={CalendarDays} size={56} />
+        <EmptyMedia variant="icon">
+          <CalendarDays />
         </EmptyMedia>
         <EmptyTitle>还没有日子</EmptyTitle>
         <EmptyDescription>添加第一个倒数日</EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
-        <Button asChild className="bg-tool-solid px-8 text-white">
+        <Button asChild size="lg">
           <Link to={{ pathname: '/countdown/new', search }} viewTransition>
             添加
           </Link>
@@ -111,14 +139,11 @@ export function CountdownList({ embedded = false }: { embedded?: boolean }) {
   const { events, error, reload } = useEvents()
 
   const addButton = (
-    <Link
-      to={{ pathname: '/countdown/new', search }}
-      viewTransition
-      aria-label="新建"
-      className={cn(roundButton, 'bg-tool-solid text-white')}
-    >
-      <Plus />
-    </Link>
+    <Button asChild variant="ghost" size="icon" aria-label="新建">
+      <Link to={{ pathname: '/countdown/new', search }} viewTransition>
+        <Plus />
+      </Link>
+    </Button>
   )
 
   const entries = events ? sortEvents(events) : []
@@ -133,7 +158,7 @@ export function CountdownList({ embedded = false }: { embedded?: boolean }) {
         </SiteAction>
       )}
       <div className="mt-1 mb-4 flex items-center justify-between">
-        <h1 className="font-rounded text-title">倒数日</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">倒数日</h1>
         {/* 电脑端站点栏没有返回按钮，"+" 跟在标题右边 */}
         <div className="hidden lg:block">{addButton}</div>
       </div>
@@ -148,27 +173,32 @@ export function CountdownList({ embedded = false }: { embedded?: boolean }) {
           <Link
             to={{ pathname: `/countdown/${hero.event.id}`, search }}
             viewTransition
-            className="block"
+            className="block rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <HeroCard>
-              <IconBadge icon={eventIcon(hero.event)} size={56} />
-              <div className="mt-4 text-caption text-foreground-secondary">
-                {[hero.event.category, dateText(hero.event), REPEAT_LABEL[hero.event.repeat]].join(
-                  ' · ',
-                )}
-              </div>
-              <div className="mt-0.5 text-heading">{hero.event.title}</div>
-              <div className="mt-1">
+            <Card className="fade-in transition-shadow hover:shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <EventIcon event={hero.event} className="size-4 text-tool" />
+                  <span className="truncate">{hero.event.title}</span>
+                </CardTitle>
+                <CardDescription>
+                  {[dateText(hero.event), REPEAT_LABEL[hero.event.repeat]].join(' · ')}
+                </CardDescription>
+                <CardAction>
+                  <Badge variant="secondary">{hero.event.category}</Badge>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
                 <Days days={hero.occurrence.days} size="hero" />
-              </div>
-            </HeroCard>
+              </CardContent>
+            </Card>
           </Link>
           {rest.length > 0 && (
-            <div className="mt-3 rounded-md bg-surface px-5 py-1">
+            <ItemGroup className="mt-3 gap-2">
               {rest.map((entry) => (
                 <Row key={entry.event.id} entry={entry} search={search} />
               ))}
-            </div>
+            </ItemGroup>
           )}
         </>
       )}

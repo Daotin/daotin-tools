@@ -13,18 +13,14 @@ export function PeriodSummary() {
 
   return (
     <>
-      <div className="mt-1 flex items-baseline gap-1">
-        {status.value === 0 ? (
-          <span className="font-rounded text-stat font-bold">今天</span>
-        ) : (
-          <>
-            <span className="font-rounded text-stat font-bold">{status.value}</span>
-            {/* 首页只放"天"，方向交给下面那行说明（"预计经期开始" / "已推迟"） */}
-            <span className="text-caption text-foreground-secondary">天</span>
-          </>
-        )}
+      <div className="flex items-baseline gap-1">
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">
+          {status.value === 0 ? '今天' : status.value}
+        </span>
+        {/* 首页只放"天"，方向交给下面那行说明（"预计经期开始" / "已推迟"） */}
+        {status.value !== 0 && <span className="text-xs text-muted-foreground">天</span>}
       </div>
-      <div className="mt-auto pt-0.5 text-caption text-foreground-secondary">{status.summary}</div>
+      <div className="mt-auto pt-0.5 text-xs text-muted-foreground">{status.summary}</div>
     </>
   )
 }
