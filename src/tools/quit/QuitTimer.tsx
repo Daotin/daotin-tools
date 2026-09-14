@@ -1,7 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { CigaretteOff } from 'lucide-react'
-import { DatePicker } from '@/components/DatePicker'
-import { Sheet } from '@/components/Sheet'
 import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -13,22 +11,16 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { toDateString } from '@/lib/date'
 import { useMediaQuery } from '@/lib/media'
 import { CalendarPanel } from './QuitCalendar'
 import { useQuit } from './QuitLayout'
-import { addRelapse, createItem } from './data'
+import { QuitRelapseSheet } from './QuitRelapseSheet'
+import { createItem } from './data'
 import { computeStats, formatClock } from './stats'
 
 // 电脑端把统计直接排在计时下面，不再走 tab；recharts 只在这时候才下载
 const QuitStats = lazy(() => import('./QuitStats').then((m) => ({ default: m.QuitStats })))
-
-/** Date → 'HH:mm'，给 `<input type="time">` 和文案共用。 */
-const hhmm = (d: Date) =>
-  `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 
 /** 计时卡下面那排数字，一格一个。 */
 function Num({ label, value, unit }: { label: string; value: number; unit: string }) {
@@ -45,17 +37,14 @@ function Num({ label, value, unit }: { label: string; value: number; unit: strin
 
 function formatStart(ms: number) {
   const d = new Date(ms)
-  return `自 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${hhmm(d)} 起`
+  const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return `自 ${d.getMonth() + 1} 月 ${d.getDate()} 日 ${time} 起`
 }
 
 export function QuitTimer() {
   const { item, relapses, mock, reload } = useQuit()
   const [now, setNow] = useState(() => Date.now())
   const [open, setOpen] = useState(false)
-  /** 破戒时刻拆成日期和时分两个控件（shadcn 的日期时间范式） */
-  const [atDate, setAtDate] = useState('')
-  const [atTime, setAtTime] = useState('')
-  const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const desktop = useMediaQuery('(min-width: 80rem)')
 
@@ -99,33 +88,6 @@ export function QuitTimer() {
   }
 
   const stats = computeStats(item.start_at, relapses, now)
-
-  async function onConfirm() {
-    if (!item) return
-    const when = new Date(`${atDate}T${atTime}`)
-    if (Number.isNaN(when.getTime())) {
-      toast('请选择破戒时间')
-      return
-    }
-    // 日期选择器只挡到"今天"，今天里的时分仍可能超，这里再拦一次
-    if (when.getTime() > Date.now()) {
-      toast('破戒时间不能晚于现在')
-      return
-    }
-    setBusy(true)
-    try {
-      if (!mock) await addRelapse(item, when.toISOString(), note)
-      await reload()
-      setOpen(false)
-      setNote('')
-      toast('已记录')
-    } catch (e) {
-      // 失败时抽屉和已填内容都留着，用户可以改完再试
-      toast(e instanceof Error ? e.message : '保存失败，请重试')
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <>
@@ -171,12 +133,7 @@ export function QuitTimer() {
             variant="destructive"
             size="lg"
             className="mt-auto w-full xl:mt-6 xl:w-50"
-            onClick={() => {
-              const d = new Date()
-              setAtDate(toDateString(d))
-              setAtTime(hhmm(d))
-              setOpen(true)
-            }}
+            onClick={() => setOpen(true)}
           >
             破戒
           </Button>
@@ -199,50 +156,7 @@ export function QuitTimer() {
         </div>
       )}
 
-      <Sheet open={open} onClose={() => setOpen(false)} title="记录破戒">
-        <FieldGroup>
-          {/* DatePicker 是一组控件而不是单个输入框，没有可指的 id，label 渲染成 span */}
-          <Field>
-            <FieldLabel asChild>
-              <span>日期</span>
-            </FieldLabel>
-            <DatePicker value={atDate} max={toDateString(new Date(now))} onChange={setAtDate} />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="quit-time">时间</FieldLabel>
-            <Input
-              id="quit-time"
-              type="time"
-              className="tabular-nums"
-              value={atTime}
-              onChange={(e) => setAtTime(e.target.value)}
-            />
-          </Field>
-          <Field>
-            <FieldLabel htmlFor="quit-note">备注（可选）</FieldLabel>
-            <Input
-              id="quit-note"
-              placeholder="写点什么"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </Field>
-        </FieldGroup>
-        <div className="mt-6 flex gap-3">
-          <Button variant="outline" size="lg" className="flex-1" onClick={() => setOpen(false)}>
-            取消
-          </Button>
-          <Button
-            variant="destructive"
-            size="lg"
-            className="flex-1"
-            loading={busy}
-            onClick={onConfirm}
-          >
-            确认破戒
-          </Button>
-        </div>
-      </Sheet>
+      {open && <QuitRelapseSheet target="new" onClose={() => setOpen(false)} />}
     </>
   )
 }

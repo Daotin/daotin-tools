@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Period } from '@/lib/database.types'
+import { advicePhase } from './advice'
 import {
   addDays,
   backtest,
@@ -295,5 +296,27 @@ describe('未填结束日', () => {
     const after = statusText(periods, predict(periods, at('2026-04-04')), at('2026-04-04'))!
     expect(after.title).not.toContain('经期第')
     expect(after.title).toBe('排卵期开始')
+  })
+})
+
+describe('advicePhase', () => {
+  // 只有一条记录：周期取默认 28 天，下次预计 10-08
+  const periods = build('2026-09-10', [])
+  const prediction = predict(periods, at('2026-09-12'))!
+
+  it('落在经期里 → during', () => {
+    expect(advicePhase(periods, prediction, at('2026-09-12'))).toBe('during')
+  })
+
+  it('预测开始日前两天 → before', () => {
+    expect(advicePhase(periods, prediction, addDays(prediction.nextStart, -2))).toBe('before')
+  })
+
+  it('已推迟也算 before', () => {
+    expect(advicePhase(periods, prediction, addDays(prediction.nextStart, 3))).toBe('before')
+  })
+
+  it('排卵期和平时不给建议', () => {
+    expect(advicePhase(periods, prediction, at('2026-09-24'))).toBe(null)
   })
 })

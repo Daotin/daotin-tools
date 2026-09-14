@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/item'
 import type { Period } from '@/lib/database.types'
 import { DatePicker } from '@/components/DatePicker'
+import { ADVICE, advicePhase } from './advice'
 import { PeriodCalendar } from './PeriodCalendar'
 import { PeriodEditor, validate } from './PeriodEditor'
 import type { PeriodInput } from './data'
@@ -132,6 +133,42 @@ function Hero({ periods, prediction }: { periods: Period[]; prediction: Predicti
           </div>
         </CardContent>
       )}
+    </Card>
+  )
+}
+
+/** 按当前阶段给两三条能照做的事。排卵期和平时不出现。 */
+function Advice({ periods, prediction }: { periods: Period[]; prediction: Prediction | null }) {
+  const phase = advicePhase(periods, prediction)
+  if (!phase) return null
+  const { title, groups } = ADVICE[phase]
+  return (
+    <Card className="fade-in gap-4">
+      <CardHeader>
+        <CardTitle className="text-base">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        {groups.map((group) => (
+          <div key={group.label}>
+            {/* 只有一组时组名没有信息量（"准备"和标题重复），不画 */}
+            {groups.length > 1 && (
+              <div className="mb-1 text-xs text-muted-foreground">{group.label}</div>
+            )}
+            <ItemGroup>
+              {group.items.map((advice) => (
+                <Item key={advice.text} size="sm" className="px-0">
+                  <ItemMedia>
+                    <advice.icon className="size-4 text-tool" />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle className="font-normal">{advice.text}</ItemTitle>
+                  </ItemContent>
+                </Item>
+              ))}
+            </ItemGroup>
+          </div>
+        ))}
+      </CardContent>
     </Card>
   )
 }
@@ -260,6 +297,7 @@ export function PeriodPage() {
                 }}
               />
             )}
+            <Advice periods={list} prediction={prediction} />
             <PeriodCalendar
               anchor={anchor}
               onAnchor={setAnchor}

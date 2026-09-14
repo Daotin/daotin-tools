@@ -7,11 +7,10 @@ import {
   isSameDay,
   startOfWeek,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, CigaretteOff, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CigaretteOff } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatMonthDay } from '@/lib/date'
 import { Segmented } from '@/components/Segmented'
-import { toast } from '@/components/Toast'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -23,17 +22,15 @@ import {
 } from '@/components/ui/card'
 import {
   Item,
-  ItemActions,
   ItemContent,
   ItemGroup,
   ItemMedia,
   ItemTitle,
   ItemDescription,
 } from '@/components/ui/item'
-import { Spinner } from '@/components/ui/spinner'
 import type { QuitRelapse } from '@/lib/database.types'
 import { useQuit } from './QuitLayout'
-import { deleteRelapse } from './data'
+import { QuitRelapseSheet } from './QuitRelapseSheet'
 
 type View = 'week' | 'month' | 'year'
 
@@ -117,14 +114,12 @@ function Day({
 
 /** 日历卡 + 选中日的记录列表。计时段在电脑端并排时复用同一个组件。 */
 export function CalendarPanel() {
-  const { relapses, mock, reload } = useQuit()
+  const { relapses } = useQuit()
   const [view, setView] = useState<View>('month')
   const [anchor, setAnchor] = useState(() => new Date())
   const [selected, setSelected] = useState<Date | null>(() => new Date())
-  const [confirmId, setConfirmId] = useState('')
-  /** 正在请求删除的那条（转圈）；删完才轮到 removingId 播退场动画 */
-  const [deletingId, setDeletingId] = useState('')
-  const [removingId, setRemovingId] = useState('')
+  /** 正在编辑的那条记录，改时间、备注和删除都在抽屉里 */
+  const [editing, setEditing] = useState<QuitRelapse | null>(null)
 
   const byDay = groupByDay(relapses)
   const countOf = (d: Date) => byDay.get(dayKey(d))?.length ?? 0
@@ -173,24 +168,6 @@ export function CalendarPanel() {
         : `${anchor.getFullYear()} 年`
 
   const dayRecords = selected ? (byDay.get(dayKey(selected)) ?? []) : []
-
-  async function onDelete(id: string) {
-    setDeletingId(id)
-    try {
-      if (!mock) await deleteRelapse(id)
-    } catch (e) {
-      toast(e instanceof Error ? e.message : '保存失败，请重试')
-      return
-    } finally {
-      setDeletingId('')
-    }
-    setConfirmId('')
-    // 先让这一行播完退场动画再刷新列表，否则刷新一回来节点直接没了，看不到动画
-    setRemovingId(id)
-    await new Promise((r) => setTimeout(r, 200))
-    await reload()
-    setRemovingId('')
-  }
 
   return (
     <>
@@ -295,51 +272,21 @@ export function CalendarPanel() {
                 {dayRecords.map((r) => (
                   <Item
                     key={r.id}
+                    asChild
                     size="sm"
-                    className={cn('item-in', removingId === r.id && 'item-out')}
+                    className="item-in hover:bg-accent/50"
                   >
-                    <ItemMedia>
-                      <CigaretteOff className="size-4 text-muted-foreground" />
-                    </ItemMedia>
-                    <ItemContent>
-                      <ItemTitle className="tabular-nums">{hhmm(new Date(r.relapsed_at))}</ItemTitle>
-                      {r.note && <ItemDescription>{r.note}</ItemDescription>}
-                    </ItemContent>
-                    <ItemActions>
-                      {confirmId === r.id ? (
-                        <>
-                          <span className="text-sm text-muted-foreground">删除？</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={!!deletingId}
-                            onClick={() => setConfirmId('')}
-                          >
-                            取消
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-destructive hover:text-destructive"
-                            disabled={!!deletingId}
-                            aria-busy={deletingId === r.id || undefined}
-                            onClick={() => onDelete(r.id)}
-                          >
-                            {deletingId === r.id ? <Spinner /> : '删除'}
-                          </Button>
-                        </>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="删除"
-                          className="text-muted-foreground"
-                          onClick={() => setConfirmId(r.id)}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      )}
-                    </ItemActions>
+                    <button type="button" className="text-left" onClick={() => setEditing(r)}>
+                      <ItemMedia>
+                        <CigaretteOff className="size-4 text-muted-foreground" />
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle className="tabular-nums">
+                          {hhmm(new Date(r.relapsed_at))}
+                        </ItemTitle>
+                        {r.note && <ItemDescription>{r.note}</ItemDescription>}
+                      </ItemContent>
+                    </button>
                   </Item>
                 ))}
               </ItemGroup>
@@ -347,6 +294,8 @@ export function CalendarPanel() {
           </CardContent>
         </Card>
       )}
+
+      {editing && <QuitRelapseSheet target={editing} onClose={() => setEditing(null)} />}
     </>
   )
 }

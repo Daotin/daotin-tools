@@ -68,6 +68,27 @@ export async function addRelapse(item: QuitItem, relapsedAt: string, note: strin
   if (error) throw error
 }
 
+/** 改一条已有记录的时间和备注。时间前移到 start_at 之前时同样把 start_at 拉过去。 */
+export async function updateRelapse(
+  item: QuitItem,
+  id: string,
+  relapsedAt: string,
+  note: string,
+) {
+  if (new Date(relapsedAt) < new Date(item.start_at)) {
+    const { error } = await supabase
+      .from('quit_items')
+      .update({ start_at: relapsedAt })
+      .eq('id', item.id)
+    if (error) throw error
+  }
+  const { error } = await supabase
+    .from('quit_relapses')
+    .update({ relapsed_at: relapsedAt, note: note.trim() || null })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function deleteRelapse(id: string) {
   const { error } = await supabase.from('quit_relapses').delete().eq('id', id)
   if (error) throw error
