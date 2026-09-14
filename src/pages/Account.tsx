@@ -1,12 +1,13 @@
 import { useState } from 'react'
-import { Download, KeyRound, LoaderCircle, Mail, Upload } from 'lucide-react'
+import { Download, KeyRound, Mail, Upload } from 'lucide-react'
 import { useNavigate } from 'react-router'
 import { ListRow } from '@/components/ListRow'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { ItemGroup } from '@/components/ui/item'
+import { Item, ItemActions, ItemContent, ItemGroup, ItemTitle } from '@/components/ui/item'
+import { Spinner } from '@/components/ui/spinner'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { useSession } from '@/lib/auth'
@@ -56,7 +57,7 @@ export function Account() {
           onClick={exporting ? undefined : onExport}
           trailing={
             exporting ? (
-              <LoaderCircle className="size-4 animate-spin text-muted-foreground" />
+              <Spinner className="text-muted-foreground" />
             ) : undefined
           }
         />
@@ -235,18 +236,24 @@ export function AccountRestore() {
           </FieldGroup>
 
           {progress && (
-            <ul className="mt-6 flex flex-col gap-2 text-sm">
+            <ItemGroup className="mt-6 gap-2">
               {progress.map((p) => (
-                <li key={p.table} className="flex justify-between gap-3">
-                  <span>{TABLE_LABELS[p.table]}</span>
-                  <span
-                    className={p.status === 'failed' ? 'text-destructive' : 'text-muted-foreground'}
+                <Item key={p.table} size="sm" variant="outline">
+                  <ItemContent>
+                    <ItemTitle>{TABLE_LABELS[p.table]}</ItemTitle>
+                  </ItemContent>
+                  <ItemActions
+                    className={
+                      p.status === 'failed'
+                        ? 'text-sm text-destructive'
+                        : 'text-sm text-muted-foreground'
+                    }
                   >
                     {progressText(p)}
-                  </span>
-                </li>
+                  </ItemActions>
+                </Item>
               ))}
-            </ul>
+            </ItemGroup>
           )}
           {done && (
             <p className="mt-6 text-sm text-muted-foreground">

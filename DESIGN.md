@@ -44,8 +44,9 @@ description: 个人小工具站的全站通用视觉规则。直接采用 shadcn
 
 - `ToolColorProvider` 在进入某个工具的路由时，把 `--chart-tool` 写到 `<html>` 上
   （写在 `<html>` 而不是包一层 div，因为弹层、抽屉、站点栏按钮都是 portal 出去的）。
-- 页面里用工具类 `text-tool` / `bg-tool/10` / `border-tool` / `stroke-tool` 取这个颜色，
-  recharts 这类需要真值的地方写 `var(--color-tool)`。
+- 页面里用工具类 `text-tool` / `bg-tool/10` / `border-tool` / `stroke-tool` 取这个颜色。
+- 图表里不直接写工具色：`ChartConfig` 的 `color` 填 `var(--color-tool)`，
+  线和点用它生成的 `var(--color-<dataKey>)`，这样 tooltip 的色块也跟着走。
 - 首页工具卡不在当前工具路由下，各自用行内 `style={{ '--chart-tool': ... }}` 覆盖。
 - **首页摘要里取工具色必须用工具类**（`stroke-tool` / `fill-tool` / `text-tool`）。`--color-tool` 是 `@theme inline` 在 `:root` 上就地展开的，写 `var(--color-tool)` 取不到卡片行内给的 `--chart-tool`，会退回默认色。工具路由内部两种写法都行。
 - 名字到 chart 槽的映射表在 `ToolColorProvider.tsx` 的 `CHART_SLOT`。
@@ -68,9 +69,14 @@ description: 个人小工具站的全站通用视觉规则。直接采用 shadcn
 | 导航 | `ui/sidebar`（电脑常驻、手机自动变 `ui/sheet` 侧滑） |
 | 提示 | `sonner`（`components/Toast` 的 `toast()`）、`ui/alert`（`components/InlineError`） |
 | 进度 | `ui/progress`（顶部后台刷新条是它的不定值形态） |
+| 表格 | `ui/table`（`Table` / `TableBody` / `TableRow` / `TableCell`） |
+| 图表 | `ui/chart`（`ChartContainer` 自带 ResponsiveContainer 和坐标轴配色，别再手填 `tick={{ fill }}`）+ `ChartTooltip` / `ChartTooltipContent` |
+| 转圈 | `ui/spinner`，不要自己写 `LoaderCircle` + `animate-spin` |
 
-图标直接写 `<Icon className="size-4 text-muted-foreground" />`。
-**不要再做实色圆形图标底**（`IconBadge` 已废弃，只剩兼容壳，等调用清空后删除）。
+图标直接写 `<Icon className="size-4 text-muted-foreground" />`。**不要再做实色圆形图标底。**
+
+自己写外观只剩两种正当理由：shadcn 没有对应物（戒烟和经期的日历格子要标破戒、经期、排卵，
+`ui/calendar` 给不了），或者是薄封装（`Segmented` / `ListRow` / `Sheet` / `DatePicker`）。
 
 改 `ui/` 下的文件只有一种正当理由：本项目必须的功能扩展（例如 button 的 `loading`、
 sonner 读 `.dark` class）。**不要为了"更好看"去改它们的默认外观。**

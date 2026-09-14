@@ -1,8 +1,15 @@
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { Line, LineChart, XAxis, YAxis } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { ChartConfig } from '@/components/ui/chart'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { cn } from '@/lib/cn'
 import { useQuit } from './QuitLayout'
 import { computeStats, weeklyCounts } from './stats'
+
+/** 线的颜色走 ChartContainer 生成的 --color-count，工具色由 ToolColorProvider 给。 */
+const CHART_CONFIG = {
+  count: { label: '破戒', color: 'var(--color-tool)' },
+} satisfies ChartConfig
 
 function Stat({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
@@ -71,61 +78,53 @@ export function QuitStats({ embedded = false }: { embedded?: boolean }) {
           <CardTitle>每周破戒</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-40">
-            <ResponsiveContainer width="100%" height="100%">
-              {/* 0 次的周点落在底线上，所以纵轴从 0 起，不画网格线 */}
-              <LineChart data={weeks} margin={{ top: 18, right: 16, bottom: 0, left: 0 }}>
-                <XAxis
-                  dataKey="label"
-                  ticks={ticks}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
-                />
-                <YAxis
-                  domain={[0, max]}
-                  allowDecimals={false}
-                  tickLine={false}
-                  axisLine={false}
-                  width={24}
-                  tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
-                />
-                <Line
-                  dataKey="count"
-                  stroke="var(--color-tool)"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  isAnimationActive={false}
-                  dot={(props) => {
-                    const { cx, cy, index, key } = props as {
-                      cx: number
-                      cy: number
-                      index: number
-                      key: string
-                    }
-                    const last = index === weeks.length - 1
-                    return (
-                      <g key={key}>
-                        <circle cx={cx} cy={cy} r={last ? 5 : 2.5} fill="var(--color-tool)" />
-                        {last && (
-                          <text
-                            x={cx}
-                            y={cy - 12}
-                            textAnchor="end"
-                            fill="var(--color-tool)"
-                            className="text-xs font-medium tabular-nums"
-                          >
-                            {weeks[index].count}
-                          </text>
-                        )}
-                      </g>
-                    )
-                  }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <ChartContainer config={CHART_CONFIG} className="h-40 w-full">
+            {/* 0 次的周点落在底线上，所以纵轴从 0 起，不画网格线 */}
+            <LineChart data={weeks} margin={{ top: 18, right: 16, bottom: 0, left: 0 }}>
+              <XAxis dataKey="label" ticks={ticks} tickLine={false} axisLine={false} />
+              <YAxis
+                domain={[0, max]}
+                allowDecimals={false}
+                tickLine={false}
+                axisLine={false}
+                width={24}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Line
+                dataKey="count"
+                stroke="var(--color-count)"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                isAnimationActive={false}
+                dot={(props) => {
+                  const { cx, cy, index, key } = props as {
+                    cx: number
+                    cy: number
+                    index: number
+                    key: string
+                  }
+                  const last = index === weeks.length - 1
+                  return (
+                    <g key={key}>
+                      <circle cx={cx} cy={cy} r={last ? 5 : 2.5} fill="var(--color-count)" />
+                      {last && (
+                        <text
+                          x={cx}
+                          y={cy - 12}
+                          textAnchor="end"
+                          fill="var(--color-count)"
+                          className="text-xs font-medium tabular-nums"
+                        >
+                          {weeks[index].count}
+                        </text>
+                      )}
+                    </g>
+                  )
+                }}
+              />
+            </LineChart>
+          </ChartContainer>
         </CardContent>
       </Card>
 

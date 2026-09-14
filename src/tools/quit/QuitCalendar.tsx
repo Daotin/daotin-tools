@@ -7,7 +7,7 @@ import {
   isSameDay,
   startOfWeek,
 } from 'date-fns'
-import { ChevronLeft, ChevronRight, CigaretteOff, LoaderCircle, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CigaretteOff, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import { formatMonthDay } from '@/lib/date'
 import { Segmented } from '@/components/Segmented'
@@ -30,6 +30,7 @@ import {
   ItemTitle,
   ItemDescription,
 } from '@/components/ui/item'
+import { Spinner } from '@/components/ui/spinner'
 import type { QuitRelapse } from '@/lib/database.types'
 import { useQuit } from './QuitLayout'
 import { deleteRelapse } from './data'
@@ -324,11 +325,7 @@ export function CalendarPanel() {
                             aria-busy={deletingId === r.id || undefined}
                             onClick={() => onDelete(r.id)}
                           >
-                            {deletingId === r.id ? (
-                              <LoaderCircle className="size-4 animate-spin" />
-                            ) : (
-                              '删除'
-                            )}
+                            {deletingId === r.id ? <Spinner /> : '删除'}
                           </Button>
                         </>
                       ) : (

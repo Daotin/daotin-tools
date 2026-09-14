@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { Fuel } from 'lucide-react'
-import { Line, LineChart, ResponsiveContainer, XAxis, YAxis } from 'recharts'
+import { Line, LineChart, XAxis, YAxis } from 'recharts'
 import { InlineError } from '@/components/InlineError'
 import { PageSkeleton } from '@/components/Skeleton'
 import { Button } from '@/components/ui/button'
@@ -12,11 +12,20 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import type { ChartConfig } from '@/components/ui/chart'
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/cn'
 import type { OilLatest, OilPoint } from './data'
 import { useOil } from './data'
+
+/** 线的颜色走 ChartContainer 生成的 --color-p92，工具色由 ToolColorProvider 给。 */
+const CHART_CONFIG = {
+  p92: { label: '92#', color: 'var(--color-tool)' },
+} satisfies ChartConfig
 
 /** 'YYYY-MM-DD' → "9 月 12 日"。按本地时区解析，不用 new Date(string) 的 UTC 语义。 */
 function monthDay(date: string) {
@@ -137,66 +146,64 @@ function Chart({ history }: { history: OilPoint[] }) {
     .map((p) => p.observed_date)
 
   return (
-    <div className="mt-2 h-45">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={history} margin={{ top: 20, right: 12, bottom: 0, left: 0 }}>
-          <XAxis
-            dataKey="observed_date"
-            ticks={ticks}
-            tickFormatter={shortDate}
-            tickLine={false}
-            axisLine={false}
-            tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
-          />
-          <YAxis
-            domain={[low, high]}
-            ticks={[low, (low + high) / 2, high].map((v) => Number(v.toFixed(2)))}
-            tickFormatter={(v: number) => v.toFixed(2)}
-            tickLine={false}
-            axisLine={false}
-            width={44}
-            tick={{ fill: 'var(--muted-foreground)', fontSize: 11 }}
-          />
-          <Line
-            dataKey="p92"
-            stroke="var(--color-tool)"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            isAnimationActive={false}
-            dot={(props) => {
-              const { cx, cy, index, key } = props as {
-                cx: number
-                cy: number
-                index: number
-                key: string
-              }
-              const last = index === history.length - 1
-              return (
-                <g key={key}>
-                  <circle cx={cx} cy={cy} r={last ? 6 : 3} fill="var(--color-tool)" />
-                  {last && (
-                    <text
-                      x={cx}
-                      y={cy - 14}
-                      textAnchor="end"
-                      fill="var(--color-tool)"
-                      className="text-xs font-semibold tabular-nums"
-                    >
-                      {history[index].p92.toFixed(2)}
-                    </text>
-                  )}
-                </g>
-              )
-            }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
+    <ChartContainer config={CHART_CONFIG} className="mt-2 h-45 w-full">
+      <LineChart data={history} margin={{ top: 20, right: 12, bottom: 0, left: 0 }}>
+        <XAxis
+          dataKey="observed_date"
+          ticks={ticks}
+          tickFormatter={shortDate}
+          tickLine={false}
+          axisLine={false}
+        />
+        <YAxis
+          domain={[low, high]}
+          ticks={[low, (low + high) / 2, high].map((v) => Number(v.toFixed(2)))}
+          tickFormatter={(v: number) => v.toFixed(2)}
+          tickLine={false}
+          axisLine={false}
+          width={44}
+        />
+        <ChartTooltip
+          content={<ChartTooltipContent labelFormatter={(value) => monthDay(String(value))} />}
+        />
+        <Line
+          dataKey="p92"
+          stroke="var(--color-p92)"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          isAnimationActive={false}
+          dot={(props) => {
+            const { cx, cy, index, key } = props as {
+              cx: number
+              cy: number
+              index: number
+              key: string
+            }
+            const last = index === history.length - 1
+            return (
+              <g key={key}>
+                <circle cx={cx} cy={cy} r={last ? 6 : 3} fill="var(--color-p92)" />
+                {last && (
+                  <text
+                    x={cx}
+                    y={cy - 14}
+                    textAnchor="end"
+                    fill="var(--color-p92)"
+                    className="text-xs font-semibold tabular-nums"
+                  >
+                    {history[index].p92.toFixed(2)}
+                  </text>
+                )}
+              </g>
+            )
+          }}
+        />
+      </LineChart>
+    </ChartContainer>
   )
 }
 
-/** 价格变化表：最新在上，涨跌对比上一条。首条没有对比对象，不单独列一行。 */
 function History({ history }: { history: OilPoint[] }) {
   const [all, setAll] = useState(false)
   const rows = history
@@ -218,30 +225,33 @@ function History({ history }: { history: OilPoint[] }) {
         ) : (
           <>
             <Chart history={history} />
-            <table className="mt-3 w-full text-sm">
-              <tbody>
+            <Table className="mt-3">
+              <TableBody>
                 {shown.map((row) => {
                   const up = (row.change ?? 0) >= 0
                   return (
-                    <tr key={row.observed_date} className="border-b last:border-0">
-                      <td className="py-2 text-muted-foreground">{monthDay(row.observed_date)}</td>
-                      <td className="py-2 text-right font-medium tabular-nums">
+                    <TableRow key={row.observed_date}>
+                      <TableCell className="text-muted-foreground">
+                        {monthDay(row.observed_date)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium tabular-nums">
                         {row.p92.toFixed(2)}
-                      </td>
-                      <td
-                        className={`py-2 text-right font-medium tabular-nums ${
-                          up ? 'text-destructive' : 'text-primary'
-                        }`}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          'text-right font-medium tabular-nums',
+                          up ? 'text-destructive' : 'text-primary',
+                        )}
                       >
                         {/* 跌用 U+2212 减号，和数字同宽 */}
                         {up ? '+' : '−'}
                         {Math.abs(row.change ?? 0).toFixed(2)}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
             {rows.length > 10 && !all && (
               <Button variant="ghost" className="mt-2 w-full" onClick={() => setAll(true)}>
                 查看全部

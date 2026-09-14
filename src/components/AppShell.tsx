@@ -194,9 +194,15 @@ function OfflineBanner() {
       className="reveal flex items-center gap-2 border-b bg-muted px-4 py-2 text-sm text-muted-foreground lg:px-6"
     >
       <span className="flex-1">当前离线，显示的是上次数据</span>
-      <button type="button" aria-label="关闭" onClick={() => setClosed(true)}>
+      <Button
+        variant="ghost"
+        size="icon"
+        aria-label="关闭"
+        className="-my-1 size-7"
+        onClick={() => setClosed(true)}
+      >
         <X className="size-4" />
-      </button>
+      </Button>
     </div>
   )
 }
