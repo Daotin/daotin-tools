@@ -4,7 +4,6 @@ import { AppShell } from '@/components/AppShell'
 import { ToolColorProvider } from '@/components/ToolColorProvider'
 import { Toaster } from '@/components/Toast'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { UpdatePrompt } from '@/components/UpdatePrompt'
 import { RequireAuth, SessionProvider } from '@/lib/auth'
 import { configError } from '@/lib/supabase'
 import { Home } from '@/pages/Home'
@@ -65,7 +64,6 @@ export function App() {
   return (
     <SessionProvider>
       <RouterProvider router={router} />
-      <UpdatePrompt />
       <Toaster />
     </SessionProvider>
   )
