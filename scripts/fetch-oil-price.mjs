@@ -71,8 +71,10 @@ const html = args.includes('--html')
   ? await readFile(htmlFile, 'utf-8')
   : await fetchHtml()
 
+const latestPath = join(outDir, 'latest.json')
+const previous = await readJson(latestPath, {})
 const parsed = parseOilPage(html)
-const errors = validate(parsed)
+const errors = validate(parsed, previous.source_date)
 console.log(JSON.stringify(parsed, null, 2))
 if (errors.length) fail(errors.join('；'))
 
@@ -96,7 +98,7 @@ if (dryRun) {
 }
 
 await mkdir(outDir, { recursive: true })
-await writeFile(join(outDir, 'latest.json'), JSON.stringify(latest, null, 2) + '\n')
+await writeFile(latestPath, JSON.stringify(latest, null, 2) + '\n')
 console.log('已写 latest.json')
 if (changed) {
   await writeFile(historyPath, JSON.stringify(nextHistory, null, 2) + '\n')

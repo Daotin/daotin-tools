@@ -14,24 +14,25 @@ export function toText(html) {
 }
 
 /**
- * 预告文案里的"M月D日"配上页面日期的年份（月份比页面月份小就算下一年）。
- * 这个日期比页面日期还早，说明网站留着上一轮的旧预告没更新，直接丢掉。
+ * 预告文案里的"M月D日"配上今天的年份（月份比当前月份小就算下一年）。
+ * 这个日期已经过去，说明网站还留着上一轮的预告（比如那轮搁浅了还没换新文案），直接丢掉。
+ * 跟今天比而不是跟页面日期比：搁浅时页面日期会一直停在上次调价那天，跟它比过滤不掉。
  */
-function freshAdjustment(text, sourceDate) {
-  if (!text || !sourceDate) return text
+function freshAdjustment(text, today) {
+  if (!text) return text
   const md = text.match(/(\d{1,2})\s*月\s*(\d{1,2})\s*日/)
   if (!md) return text
-  const [year, month] = sourceDate.split('-').map(Number)
+  const [year, month] = today.split('-').map(Number)
   const p = (n) => String(n).padStart(2, '0')
   const date = `${Number(md[1]) < month ? year + 1 : year}-${p(md[1])}-${p(md[2])}`
-  return date < sourceDate ? null : text
+  return date < today ? null : text
 }
 
 /**
  * 解析 92 号汽油价格、页面日期、下次调价预告。
  * 任一项解析不到就是 null，由调用方决定是否致命（预告不致命）。
  */
-export function parseOilPage(html) {
+export function parseOilPage(html, today = beijingDate()) {
   const text = toText(html)
   const price = text.match(/92\s*号汽油\s*([\d.]+)\s*[（(]\s*元\s*[）)]/)
   const date = text.match(/油价\s*(\d{4})-(\d{1,2})-(\d{1,2})/)
@@ -42,7 +43,7 @@ export function parseOilPage(html) {
   return {
     p92: price ? Number(price[1]) : null,
     source_date,
-    next_adjustment_text: freshAdjustment(next ? next[0].trim() : null, source_date),
+    next_adjustment_text: freshAdjustment(next ? next[0].trim() : null, today),
   }
 }
 
@@ -52,10 +53,12 @@ export function beijingDate(now = new Date()) {
 }
 
 /**
- * 校验：价格是 5–15 的有限数；页面日期能解析且不早于今天 20 天。
+ * 校验：价格是 5–15 的有限数；页面日期能解析，且不早于上次抓到的页面日期。
+ * 页面日期是"价格最后一次变动的日子"，调价搁浅时会停住几周，这是正常的；
+ * 倒退才说明抓到了旧缓存，放进去会把历史表格写成一次假的涨跌。
  * 返回不通过的原因数组，空数组代表通过。
  */
-export function validate(parsed, today = beijingDate()) {
+export function validate(parsed, previousSourceDate) {
   const errors = []
   const { p92, source_date } = parsed
 
@@ -68,8 +71,9 @@ export function validate(parsed, today = beijingDate()) {
   if (!source_date || Number.isNaN(Date.parse(source_date))) {
     errors.push('没解析到页面日期')
   } else {
-    const days = Math.round((Date.parse(today) - Date.parse(source_date)) / 86400000)
-    if (days > 20) errors.push(`页面日期 ${source_date} 比今天早 ${days} 天，疑似抓到缓存页`)
+    if (previousSourceDate && source_date < previousSourceDate) {
+      errors.push(`页面日期 ${source_date} 早于上次的 ${previousSourceDate}，疑似抓到缓存页`)
+    }
   }
 
   return errors

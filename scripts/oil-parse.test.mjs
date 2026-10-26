@@ -20,8 +20,8 @@ const stale = `
 const future = sample.replace('9月11日', '9月26日')
 
 describe('parseOilPage', () => {
-  it('解析价格、页面日期；预告日期早于页面日期时丢掉（网站留着旧预告）', () => {
-    expect(parseOilPage(sample)).toEqual({
+  it('解析价格、页面日期；预告日期已经过去时丢掉（网站留着旧预告）', () => {
+    expect(parseOilPage(sample, '2026-09-13')).toEqual({
       p92: 8.31,
       source_date: '2026-09-12',
       next_adjustment_text: null,
@@ -29,12 +29,18 @@ describe('parseOilPage', () => {
   })
 
   it('预告日期还没到就保留原文', () => {
-    expect(parseOilPage(future).next_adjustment_text).toBe('下次油价9月26日24时调整')
+    expect(parseOilPage(future, '2026-09-13').next_adjustment_text).toBe('下次油价9月26日24时调整')
+  })
+
+  it('搁浅：页面日期停在上次调价日，预告日期在它之后但已过去，也要丢掉', () => {
+    // 2026-10-26 实况：页面 2026-09-26，预告"10月15日"那轮搁浅了还没换文案
+    const stalled = sample.replace('2026-09-12', '2026-09-26').replace('9月11日', '10月15日')
+    expect(parseOilPage(stalled, '2026-10-26').next_adjustment_text).toBe(null)
   })
 
   it('跨年：页面是 12 月、预告是 1 月，算成下一年，不算过期', () => {
     const crossYear = sample.replace('2026-09-12', '2026-12-30').replace('9月11日', '1月5日')
-    expect(parseOilPage(crossYear).next_adjustment_text).toBe('下次油价1月5日24时调整')
+    expect(parseOilPage(crossYear, '2026-12-30').next_adjustment_text).toBe('下次油价1月5日24时调整')
   })
 
   it('容忍空格和全角括号，没有预告时为 null', () => {
@@ -55,20 +61,25 @@ describe('parseOilPage', () => {
 })
 
 describe('validate', () => {
-  it('正常样本通过', () => {
-    expect(validate(parseOilPage(sample), '2026-09-13')).toEqual([])
+  it('正常样本通过；第一次抓（没有上次）也通过', () => {
+    expect(validate(parseOilPage(sample), '2026-08-28')).toEqual([])
+    expect(validate(parseOilPage(sample))).toEqual([])
   })
 
-  it('页面日期早于 20 天不通过', () => {
-    expect(validate(parseOilPage(stale), '2026-09-13')).toHaveLength(1)
+  it('搁浅时页面日期一个月没变，和上次相同，通过', () => {
+    expect(validate({ p92: 8.62, source_date: '2026-09-26' }, '2026-09-26')).toEqual([])
+  })
+
+  it('页面日期比上次还早，疑似缓存页，不通过', () => {
+    expect(validate(parseOilPage(stale), '2026-09-12')).toHaveLength(1)
   })
 
   it('价格不在 5–15 之间不通过', () => {
-    expect(validate({ p92: 83.1, source_date: '2026-09-13' }, '2026-09-13')).toHaveLength(1)
+    expect(validate({ p92: 83.1, source_date: '2026-09-13' })).toHaveLength(1)
   })
 
   it('解析不到时报两条', () => {
-    expect(validate({ p92: null, source_date: null }, '2026-09-13')).toHaveLength(2)
+    expect(validate({ p92: null, source_date: null })).toHaveLength(2)
   })
 })
 
