@@ -1,13 +1,13 @@
 import { Suspense, lazy } from 'react'
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router'
 import { AppShell } from '@/components/AppShell'
-import { ToolColorProvider } from '@/components/ToolColorProvider'
 import { Toaster } from '@/components/Toast'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { RequireAuth, SessionProvider } from '@/lib/auth'
 import { configError } from '@/lib/supabase'
 import { Home } from '@/pages/Home'
 import { tools } from '@/tools'
+import { toolRoutes } from '@/tools/routes'
 
 // 登录页和账号页（含备份导出/恢复）按需加载，不占主包
 const Login = lazy(() => import('@/pages/Login').then((m) => ({ default: m.Login })))
@@ -22,27 +22,23 @@ const AccountRestore = lazy(() =>
 const router = createBrowserRouter([
   { path: '/login', element: <Suspense fallback={null}><Login /></Suspense> },
   {
-    // 除登录页外，全部路由要求已登录；未登录跳 /login?redirect=<原路径>
-    element: (
-      <RequireAuth>
-        <AppShell />
-      </RequireAuth>
-    ),
+    // 首页和不读个人数据的工具不用登录；账号页和 requiresAuth 的工具未登录跳 /login?redirect=<原路径>
+    element: <AppShell />,
     children: [
       { index: true, element: <Home /> },
-      { path: 'account', element: <Account /> },
-      { path: 'account/password', element: <AccountPassword /> },
-      { path: 'account/restore', element: <AccountRestore /> },
-      // 每个工具的子路由挂在自己的 path 下，外面套一层颜色槽
-      ...tools.map((tool) => ({
-        path: tool.path,
+      {
         element: (
-          <ToolColorProvider color={tool.color}>
+          <RequireAuth>
             <Outlet />
-          </ToolColorProvider>
+          </RequireAuth>
         ),
-        children: tool.routes,
-      })),
+        children: [
+          { path: 'account', element: <Account /> },
+          { path: 'account/password', element: <AccountPassword /> },
+          { path: 'account/restore', element: <AccountRestore /> },
+        ],
+      },
+      ...toolRoutes(tools),
     ],
   },
 ])

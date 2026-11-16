@@ -17,6 +17,7 @@ export const quit: Tool = {
   path: '/quit',
   icon: CigaretteOff,
   color: 'green',
+  requiresAuth: true,
   hasSettings: true,
   Summary: QuitSummary,
   preload: () => import('./QuitLayout'),

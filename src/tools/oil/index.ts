@@ -12,6 +12,8 @@ export const oil: Tool = {
   path: '/oil',
   icon: Fuel,
   color: 'blue',
+  // 数据是站内静态文件，不读个人数据，不用登录
+  requiresAuth: false,
   hasSettings: false,
   Summary: OilSummary,
   preload: () => import('./OilPage'),

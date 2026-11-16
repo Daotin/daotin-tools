@@ -11,6 +11,7 @@ export const period: Tool = {
   path: '/period',
   icon: Droplet,
   color: 'pink',
+  requiresAuth: true,
   hasSettings: false,
   Summary: PeriodSummary,
   preload: () => import('./PeriodPage'),

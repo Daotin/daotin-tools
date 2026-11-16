@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronLeft, LayoutGrid, Monitor, Moon, Settings, Sun, User, X } from 'lucide-react'
+import { ChevronLeft, LayoutGrid, LogIn, Monitor, Moon, Settings, Sun, User, X } from 'lucide-react'
 import { Link, Outlet, useLocation, useNavigate } from 'react-router'
 import { cn } from '@/lib/cn'
 import { ErrorBoundary } from './ErrorBoundary'
@@ -106,12 +106,12 @@ function ThemeToggle() {
 /** 电脑端常驻、手机端从左侧滑出的导航（Sidebar 自带手机适配）。 */
 function AppSidebar() {
   const { session } = useSession()
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
   const { setOpenMobile } = useSidebar()
   const email = session?.user.email
   const items = [
-    { to: '/', icon: LayoutGrid, label: '首页' },
-    ...tools.map((tool) => ({ to: tool.path, icon: tool.icon, label: tool.name })),
+    { to: '/', icon: LayoutGrid, label: '首页', external: false },
+    ...tools.map((tool) => ({ to: tool.path, icon: tool.icon, label: tool.name, external: tool.external })),
   ]
   // 首页要精确匹配，工具页匹配它下面的所有子路由
   const active = (to: string) => (to === '/' ? pathname === '/' : pathname.startsWith(to))
@@ -128,8 +128,13 @@ function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton asChild isActive={active(item.to)}>
-                    {/* 手机端点完要把抽屉收起来 */}
-                    <Link to={item.to} viewTransition onClick={() => setOpenMobile(false)}>
+                    {/* 手机端点完要把抽屉收起来；外部页面工具交给浏览器整页跳转 */}
+                    <Link
+                      to={item.to}
+                      reloadDocument={item.external}
+                      viewTransition
+                      onClick={() => setOpenMobile(false)}
+                    >
                       <item.icon />
                       <span>{item.label}</span>
                     </Link>
@@ -143,12 +148,25 @@ function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={active('/account')}>
-              <Link to="/account" viewTransition onClick={() => setOpenMobile(false)}>
-                <User />
-                <span className="truncate">{email?.split('@')[0] ?? '账号'}</span>
-              </Link>
-            </SidebarMenuButton>
+            {session ? (
+              <SidebarMenuButton asChild isActive={active('/account')}>
+                <Link to="/account" viewTransition onClick={() => setOpenMobile(false)}>
+                  <User />
+                  <span className="truncate">{email?.split('@')[0] ?? '账号'}</span>
+                </Link>
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton asChild>
+                {/* 未登录：登录后回到当前页面 */}
+                <Link
+                  to={`/login?redirect=${encodeURIComponent(pathname + search)}`}
+                  onClick={() => setOpenMobile(false)}
+                >
+                  <LogIn />
+                  <span>登录</span>
+                </Link>
+              </SidebarMenuButton>
+            )}
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
@@ -224,6 +242,7 @@ function RefreshBar() {
 }
 
 export function AppShell() {
+  const { loading } = useSession()
   const { pathname, search } = useLocation()
   const navigate = useNavigate()
   const isHome = pathname === '/'
@@ -231,7 +250,10 @@ export function AppShell() {
   const parent = pathname.slice(0, pathname.lastIndexOf('/')) || '/'
   // 工具页右侧换成该工具的设置齿轮；设置页本身不再显示
   const tool = tools.find((t) => pathname.startsWith(t.path))
-  const settingsPath = tool?.hasSettings ? `${tool.path}/settings` : null
+  const settingsPath = tool && !tool.external && tool.hasSettings ? `${tool.path}/settings` : null
+
+  // 会话还没读出来时不渲染：首页卡片和侧栏的账号入口都要按是否登录显示，避免先闪一下未登录的样子
+  if (loading) return null
 
   return (
     <SidebarProvider>

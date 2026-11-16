@@ -16,6 +16,7 @@ export const countdown: Tool = {
   path: '/countdown',
   icon: CalendarDays,
   color: 'orange',
+  requiresAuth: true,
   hasSettings: false,
   Summary: CountdownSummary,
   preload: () => import('./CountdownList'),
