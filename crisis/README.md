@@ -17,7 +17,7 @@
 
 ## 在本机更新数据
 
-在仓库根目录执行。第一次先建虚拟环境、装依赖（用 Python 3.9，和云端任务一致）：
+在仓库根目录执行。第一次先建虚拟环境、装依赖（本机用 Python 3.9 以上都可以，云端任务用的是 3.12）：
 
 ```bash
 python3 -m venv crisis/.venv
@@ -55,6 +55,8 @@ crisis/.venv/bin/python -m unittest discover -s crisis/tests
 
 填错的行会被跳过，运行时终端的“人工录入文件的问题”里会列出是哪一行、什么原因。
 
-## 云端测试任务
+## 云端定时更新
 
-`.github/workflows/crisis-fetch-test.yml`：分支 `feat/crisis-warning` 推送了 `crisis/` 下的改动时自动运行，也可以在 GitHub 的 Actions 页面手动运行。它装依赖、跑单元测试、联网完整更新一次，最后打印有哪些文件变了。目的是看 GitHub 的服务器能不能访问各个数据网站，下载失败的指标会列在输出里。它只测试，不提交、不推送。
+`.github/workflows/crisis-update.yml`：每个工作日（北京时间周二到周六早上 7 点半）自动运行一次，也可以在 GitHub 的 Actions 页面手动运行。它装依赖、联网完整更新一次；`public/crisis/data/` 下的数据文件有变化才提交，提交后网站自动重新发布。
+
+某个指标在云端下载失败时，这一次的数据文件里它会显示“数据不足”，页面页头也会提示有几个指标下载失败；下一次运行成功后恢复。

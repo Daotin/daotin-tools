@@ -1,0 +1,34 @@
+name: 更新金融危机预警
+
+on:
+  schedule:
+    - cron: '30 23 * * 1-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: crisis/requirements.txt
+      - run: pip install -r crisis/requirements.txt
+      - run: python crisis/pipeline/run.py
+      - name: 有变化才提交
+        run: |
+          if git diff --quiet -- public/crisis/data; then
+            echo "预警数据无变化，不提交"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/crisis/data
+          git commit -m "chore(crisis): 更新预警数据 $(TZ=Asia/Shanghai date +%F)"
+          git pull --rebase
+          git push
