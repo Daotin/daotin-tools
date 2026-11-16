@@ -1,0 +1,76 @@
+{
+  "condition_types": {
+    "count_at_least": "main 里至少 n 项越线；缺失的项按越线和不越线各算一次，结论不同为数据不足",
+    "count_exactly": "main 里恰好 n 项越线；缺失的项按越线和不越线各算一次，结论不同为数据不足",
+    "main_level": "主指标规则给出的级别等于 level（trigger 触发、watch 有苗头）",
+    "aux_all_hit": "主指标未触发，并且 indicators 里的辅助指标同时越线"
+  },
+  "event_types": {
+    "trigger": "节点自己的触发规则的每一轮就是事件",
+    "reference": "用 series 指定的参考数据（值为 1 的月份）作为事件",
+    "none": "节点是状态，不定义事件；它的条件对照 classify_against 指定节点的事件"
+  },
+  "nodes": [
+    {
+      "id": "N1",
+      "name": "美国风险累积",
+      "summary": "美国股价估值、借钱炒股的规模、家庭还债压力是否同时处在自身历史的高位",
+      "main": ["1", "2", "3"],
+      "ok_label": "未出现",
+      "trigger": {"type": "count_at_least", "n": 2, "label": "已出现", "text": "3 项里至少 2 项偏高", "window_months": 24},
+      "watch": {"type": "count_exactly", "n": 1, "label": "有苗头", "text": "3 项里恰好 1 项偏高"},
+      "event": {"type": "none", "classify_against": "N2"},
+      "todo": ["存够 6 到 12 个月的家庭必要开支，放在随时能取出来的地方。", "不借钱投资，不买带杠杆的产品。", "列出信用卡分期、消费贷、网贷，从利率最高的开始还。"]
+    },
+    {
+      "id": "N2",
+      "name": "美国股市大幅下跌",
+      "summary": "标普 500 从一年内最高点跌了多少",
+      "main": ["5"],
+      "trigger": {"type": "main_level", "level": "trigger", "label": "已触发", "text": "跌幅达到 20%"},
+      "watch": {"type": "main_level", "level": "watch", "label": "有苗头", "text": "跌幅达到 10%、不到 20%", "window_months": 12},
+      "event": {"type": "trigger"},
+      "todo": ["3 年内要用的钱不放进股市。", "已经在定投宽基指数的，大跌时不要恐慌卖出。", "不裸辞，跳槽先拿到新工作。"]
+    },
+    {
+      "id": "N3",
+      "name": "美国经济衰退",
+      "summary": "美国失业率是否明显上升到通常意味着衰退的程度",
+      "main": ["12"],
+      "trigger": {"type": "main_level", "level": "trigger", "label": "衰退信号触发", "text": "萨姆规则读数达到 0.5"},
+      "watch": {"type": "aux_all_hit", "indicators": ["10", "11"], "label": "有苗头", "text": "长短期利差、申领失业救济人数两项同时越线", "window_months": 12},
+      "event": {"type": "reference", "series": "USREC"},
+      "todo": ["弄清自己所在行业有多依赖出口和海外客户。", "补齐医疗险、重疾险、意外险，家里主要赚钱的人加一份定期寿险。", "大额消费和新增贷款先放一放。"]
+    },
+    {
+      "id": "N4",
+      "name": "中国出口走弱",
+      "summary": "中国最近 3 个月出口额合计是否比去年同期少",
+      "main": ["14"],
+      "trigger": {"type": "main_level", "level": "trigger", "label": "已触发", "text": "出口额三个月合计同比为负，以 1 月结尾的窗口不判断"},
+      "watch": {"type": "aux_all_hit", "indicators": ["16"], "label": "有苗头", "text": "制造业 PMI 新出口订单越线", "window_months": 12},
+      "event": {"type": "trigger"},
+      "todo": ["在外贸、跨境电商、互联网、制造业工作的，先准备一项能带来收入的技能。", "更新简历，留意行业里的招聘和裁员消息。", "买了美股基金或 QDII 的，确认这笔钱 3 年内用不到。"]
+    },
+    {
+      "id": "N5",
+      "name": "国内就业压力",
+      "summary": "全国城镇调查失业率是否比去年同月明显上升",
+      "main": ["17"],
+      "trigger": {"type": "main_level", "level": "trigger", "label": "已触发", "text": "连续 2 个月比去年同月高出 0.5 个百分点以上"},
+      "watch": {"type": "main_level", "level": "watch", "label": "有苗头", "text": "最近 1 个月比去年同月高出 0.3 个百分点以上，但还没有触发", "window_months": 12},
+      "event": {"type": "trigger"},
+      "todo": ["保住现有工作，不主动离职。", "把每月必要开支算清楚，砍掉可有可无的固定支出。", "保证房贷每月还得上。应急金存够以前，不提前还房贷。"]
+    },
+    {
+      "id": "N6",
+      "name": "家庭收入与资产",
+      "summary": "居民人均可支配收入扣除物价后，比上年同一累计期间是增是减",
+      "main": ["19"],
+      "trigger": {"type": "main_level", "level": "trigger", "label": "购买力缩水", "text": "实际累计同比为负"},
+      "watch": {"type": "main_level", "level": "watch", "label": "增速放缓", "text": "实际累计同比比上年同期低 2 个百分点以上", "window_months": 12},
+      "event": {"type": "trigger"},
+      "todo": ["不听传言卖房，不把定期存款提前取出来，不大量囤货。", "不把全部积蓄换成黄金或美元。", "凡是承诺保本又承诺高收益的，一律不碰。"]
+    }
+  ]
+}

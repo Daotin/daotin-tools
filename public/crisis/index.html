@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>金融危机预警</title>
+<style>
+:root {
+  --bg: oklch(0.155 0.006 75);
+  --panel: oklch(0.195 0.007 75);
+  --panel-2: oklch(0.24 0.008 75);
+  --line: oklch(0.32 0.008 75);
+  --line-soft: oklch(0.26 0.007 75);
+  --ink: oklch(0.95 0.008 85);
+  --ink-2: oklch(0.79 0.01 85);
+  --ink-3: oklch(0.61 0.01 85);
+  --accent: oklch(0.8 0.09 235);
+  --good: #0ca30c;
+  --warn: #fab219;
+  --serious: #ec835a;
+  --critical: #e05252;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { font-size: clamp(11px, min(0.8334vw, 1.4815vh), 18px); }
+body {
+  margin: 0;
+  height: 100vh;
+  min-height: 46rem;
+  padding: 1.25rem 1.75rem 1rem;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 1rem;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, ol, ul, dl, dd { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--ink-3); }
+
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 2rem; }
+.brand { display: flex; align-items: baseline; gap: 1rem; }
+.brand h1 { font-size: 1.375rem; font-weight: 600; letter-spacing: 0.02em; }
+.brand p { font-size: 0.875rem; color: var(--ink-3); }
+.meta { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 0.4rem 1.5rem; font-size: 0.8125rem; color: var(--ink-2); }
+.meta b { font-weight: 600; color: var(--ink); }
+
+.band {
+  display: grid; grid-template-columns: 1.3fr 1fr 1fr 1.3fr;
+  background: var(--panel); border: 1px solid var(--line-soft); border-radius: 0.75rem;
+}
+.cell { padding: 1rem 1.5rem 1.1rem; min-width: 0; }
+.cell + .cell { border-left: 1px solid var(--line-soft); }
+.cell-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: var(--ink-2); }
+.cell-figure { display: flex; align-items: baseline; gap: 0.6rem; margin: 0.2rem 0 0.55rem; min-width: 0; }
+.big { font-size: 3rem; font-weight: 600; line-height: 1.1; letter-spacing: -0.01em; white-space: nowrap; }
+.big small { font-size: 1.25rem; font-weight: 500; color: var(--ink-2); margin-left: 0.15rem; }
+.big.word { font-size: 2.25rem; }
+.big svg { width: 1.6rem; height: 1.6rem; margin-right: 0.45rem; vertical-align: 0.1em; color: var(--c); }
+.cell-side { font-size: 0.875rem; color: var(--ink-2); min-width: 0; }
+.cell-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0.35rem 0.6rem; font-size: 0.8125rem; color: var(--ink-2); }
+.cell-note { margin-top: 0.45rem; font-size: 0.75rem; color: var(--ink-3); }
+.cell-note + .cell-note { margin-top: 0.15rem; }
+
+.levels { display: grid; grid-template-columns: 1fr 0.4rem repeat(4, 1fr); gap: 0.25rem; }
+.levels span { display: block; height: 0.4rem; border-radius: 0.2rem; background: var(--panel-2); }
+.levels em { display: block; margin-top: 0.3rem; font-style: normal; font-size: 0.75rem; color: var(--ink-3); white-space: nowrap; }
+.levels .on span { background: var(--c); }
+.levels .on em { color: var(--ink); font-weight: 600; }
+
+.era { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.2rem 1.25rem; margin-top: 0.45rem; font-size: 0.8125rem; }
+.era li { display: flex; align-items: baseline; gap: 0.5rem; min-width: 0; white-space: nowrap; }
+.era .node-idx { width: 1.4rem; flex: none; }
+.era .na { color: var(--ink-3); }
+.era .na svg { width: 0.7rem; height: 0.7rem; color: var(--ink-3); margin-right: 0.25rem; vertical-align: -0.05em; }
+
+.main { display: grid; grid-template-columns: minmax(22rem, 29rem) minmax(0, 1fr); gap: 1rem; min-height: 0; }
+
+.timeline { display: flex; flex-direction: column; min-height: 0; }
+.tl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 0 0.25rem 0.5rem 0.25rem; }
+.tl-head h2 { font-size: 0.9375rem; font-weight: 600; white-space: nowrap; }
+.tl-head p { font-size: 0.75rem; color: var(--ink-3); text-align: right; }
+#tl, .detail { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+#tl { overflow-y: auto; min-height: 0; padding: 0.15rem 0.25rem 0.15rem 0; }
+.node { position: relative; padding-left: 2.5rem; }
+.node + .node { margin-top: 0.3rem; }
+.node::before { content: ""; position: absolute; left: 1.1rem; top: -0.3rem; bottom: 0; width: 1px; background: var(--line); }
+.node:first-child::before { top: 1.6rem; }
+.node:last-child::before { bottom: auto; height: 1.9rem; }
+.marker {
+  position: absolute; left: 0.45rem; top: 0.95rem; width: 1.3rem; height: 1.3rem; border-radius: 50%;
+  display: grid; place-items: center; background: var(--bg); border: 1px solid var(--line);
+}
+.marker svg { width: 0.7rem; height: 0.7rem; }
+.node-btn {
+  display: block; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
+  background: transparent; border: 1px solid transparent; border-radius: 0.625rem; padding: 0.6rem 0.85rem 0.65rem;
+  transition: background-color 180ms var(--ease), border-color 180ms var(--ease);
+}
+.node-btn:hover { background: var(--panel); }
+.node-btn[aria-current="true"] { background: var(--panel-2); border-color: color-mix(in oklch, var(--accent) 50%, var(--line)); }
+.node-top { display: flex; align-items: center; gap: 0.5rem; }
+.node-idx { font-size: 0.75rem; color: var(--ink-3); }
+.node-name { font-size: 1.0625rem; font-weight: 600; margin-right: auto; }
+.node-sub { display: block; margin-top: 0.1rem; font-size: 0.8125rem; color: var(--ink-2); }
+
+.chip {
+  --c: var(--ink-3);
+  display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.1rem 0.55rem 0.1rem 0.45rem;
+  border-radius: 1rem; font-size: 0.75rem; white-space: nowrap; color: var(--ink);
+  background: color-mix(in oklch, var(--c) 14%, transparent);
+  border: 1px solid color-mix(in oklch, var(--c) 38%, transparent);
+}
+.chip svg, .marker svg, .hint svg { color: var(--c); flex: none; }
+.chip svg { width: 0.7rem; height: 0.7rem; }
+.c-critical { --c: var(--critical); }
+.c-serious { --c: var(--serious); }
+.c-warn { --c: var(--warn); }
+.c-good { --c: var(--good); }
+.c-muted { --c: var(--ink-3); }
+
+.detail {
+  background: var(--panel); border: 1px solid var(--line-soft); border-radius: 0.75rem;
+  padding: 1.4rem 1.75rem 1.25rem; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 1rem;
+}
+.detail.swap > * { animation: fade 200ms var(--ease); }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.d-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.d-kicker { font-size: 0.8125rem; color: var(--ink-3); }
+.d-head h2 { font-size: 1.75rem; font-weight: 600; line-height: 1.25; }
+.d-lead { max-width: 46rem; font-size: 0.9375rem; color: var(--ink-2); }
+.hints { display: flex; flex-direction: column; gap: 0.35rem; }
+.hint { --c: var(--ink-3); display: flex; align-items: baseline; gap: 0.5rem; font-size: 0.875rem; color: var(--ink); }
+.hint svg { width: 0.75rem; height: 0.75rem; position: relative; top: 0.08rem; }
+.d-stats { display: grid; grid-template-columns: 1.2fr 1.2fr 1fr; border-top: 1px solid var(--line-soft); border-bottom: 1px solid var(--line-soft); }
+.d-stats div { padding: 0.7rem 1.25rem 0.75rem; }
+.d-stats div:first-child { padding-left: 0; }
+.d-stats div + div { border-left: 1px solid var(--line-soft); }
+.d-stats dt { font-size: 0.8125rem; color: var(--ink-3); }
+.d-stats dd { margin-top: 0.15rem; font-size: 0.9375rem; font-weight: 600; }
+.d-stats dd.n { font-size: 1.5rem; line-height: 1.3; }
+.d-stats dd small { display: block; font-size: 0.75rem; font-weight: 400; color: var(--ink-3); }
+.d-cols { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 2.25rem; }
+.d-cols > section { min-width: 0; }
+.d-cols h3 { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem 0.75rem; font-size: 0.9375rem; font-weight: 600; margin-bottom: 0.4rem; }
+.d-cols h3 span { font-size: 0.75rem; font-weight: 400; color: var(--ink-3); }
+.group + .group, .block + .block { margin-top: 1.4rem; }
+
+.ind { display: grid; grid-template-columns: minmax(0, 1fr) 10.5rem 10rem; align-items: start; column-gap: 1rem; padding: 0.7rem 0; border-top: 1px solid var(--line-soft); }
+.ind-name { font-size: 0.9375rem; font-weight: 600; }
+.ind-name small { font-size: 0.75rem; font-weight: 400; color: var(--ink-3); margin-left: 0.4rem; }
+.ind-explain { font-size: 0.8125rem; color: var(--ink-2); }
+.ind-rule { font-size: 0.8125rem; color: var(--ink-3); }
+.ind-hist { margin-top: 0.3rem; font-size: 0.8125rem; color: var(--ink-2); }
+.ind-val { font-size: 0.8125rem; color: var(--ink-3); }
+.ind-val b { display: block; font-size: 1.0625rem; font-weight: 600; color: var(--ink); }
+.ind-val .cap { display: block; color: var(--ink-2); }
+.ind-val span { display: block; }
+.ind-side { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; font-size: 0.8125rem; }
+.ind .none { font-size: 0.8125rem; color: var(--ink-3); }
+.fail { --c: var(--serious); display: flex; align-items: baseline; gap: 0.4rem; margin-top: 0.25rem; font-size: 0.8125rem; color: var(--ink); }
+.fail svg { width: 0.7rem; height: 0.7rem; color: var(--c); flex: none; }
+
+.block p { font-size: 0.875rem; color: var(--ink-2); }
+.block p + p { margin-top: 0.35rem; }
+details.more { margin-top: 0.35rem; font-size: 0.8125rem; }
+details.more summary { cursor: pointer; color: var(--accent); width: fit-content; }
+.rounds { width: 100%; margin-top: 0.4rem; border-collapse: collapse; font-size: 0.75rem; }
+.rounds th { text-align: left; font-weight: 400; color: var(--ink-3); padding: 0.2rem 0.5rem 0.2rem 0; }
+.rounds td { vertical-align: top; color: var(--ink-2); padding: 0.3rem 0.5rem 0.3rem 0; border-top: 1px solid var(--line-soft); }
+.rounds td .sub, .cases .sub { display: block; color: var(--ink-3); }
+.cases li { padding: 0.45rem 0; border-top: 1px solid var(--line-soft); font-size: 0.8125rem; color: var(--ink-2); }
+.tag { display: inline-block; margin-right: 0.4rem; padding: 0 0.4rem; border: 1px solid var(--line); border-radius: 0.25rem; font-size: 0.6875rem; color: var(--ink); white-space: nowrap; }
+.todo li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); padding: 0.55rem 0; border-top: 1px solid var(--line-soft); font-size: 0.9375rem; }
+.todo li span { color: var(--ink-3); font-size: 0.8125rem; padding-top: 0.1rem; }
+.terms dt { margin-top: 0.4rem; font-size: 0.8125rem; font-weight: 600; color: var(--ink); }
+.terms dd { font-size: 0.8125rem; color: var(--ink-2); }
+
+.foot { font-size: 0.75rem; color: var(--ink-3); }
+
+body.empty { display: grid; place-items: center; grid-template-rows: none; }
+.empty-box { max-width: 40rem; display: flex; flex-direction: column; gap: 0.75rem; }
+.empty-box h1 { font-size: 1.375rem; font-weight: 600; }
+.empty-box p { font-size: 1rem; color: var(--ink-2); }
+.empty-box pre { margin: 0; padding: 0.75rem 1rem; background: var(--panel); border: 1px solid var(--line-soft); border-radius: 0.5rem; font-size: 0.9375rem; color: var(--ink); white-space: pre-wrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .detail.swap > * { animation: none; }
+  .node-btn { transition: none; }
+}
+@media (max-width: 1100px) {
+  body { height: auto; }
+  .band, .main, .d-cols { grid-template-columns: 1fr; }
+  .cell + .cell { border-left: 0; border-top: 1px solid var(--line-soft); }
+  .top { flex-direction: column; gap: 0.5rem; }
+}
+</style>
+<script src="data/latest.js"></script>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <h1>金融危机预警</h1>
+    <p>从海外市场到你的工资，看风险走到了哪一步</p>
+    <p><a href="/">返回工具箱</a></p>
+  </div>
+  <div class="meta" id="meta"></div>
+</header>
+
+<section class="band" aria-label="总览">
+  <div class="cell" id="cellLevel"></div>
+  <div class="cell" id="cellMarket"></div>
+  <div class="cell" id="cellJobs"></div>
+  <div class="cell" id="cellEra"></div>
+</section>
+
+<main class="main">
+  <nav class="timeline" aria-label="传导时间线">
+    <div class="tl-head">
+      <h2>传导时间线</h2>
+      <p>从上到下：海外，国内，你。历史上先后顺序不固定。点节点看详情</p>
+    </div>
+    <ol id="tl"></ol>
+  </nav>
+  <article class="detail" id="detail" aria-live="polite"></article>
+</main>
+
+<footer class="foot">
+  历史统计是初步回看：用的是现在下载到的历史数值，其中有些公布后修订过，公布日也是按固定天数估计的，所以提前量都标为估算。页面不计算概率，也不预测风险哪个月到来。行动清单是通用原则，不针对任何人的具体财务情况，不构成投资建议。
+</footer>
+
+<script>
+const ICON = {
+  done: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" fill="currentColor"/></svg>',
+  sign: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor"/><path d="M6 1.5a4.5 4.5 0 0 1 0 9z" fill="currentColor"/></svg>',
+  flag: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1 11 6 6 11 1 6z" fill="currentColor"/></svg>',
+  none: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.5" fill="none" stroke="currentColor"/></svg>',
+  over: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.2 11.2 10.6H.8z" fill="currentColor"/></svg>',
+  ok: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6.4 4.8 9 10 3.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  na: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 6h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>'
+};
+const NODE_LOOK = { trigger: ['critical', 'done'], watch: ['warn', 'sign'], ok: ['good', 'ok'], insufficient: ['muted', 'na'] };
+const IND_LOOK = { hit: ['critical', 'over'], trigger: ['critical', 'done'], watch: ['warn', 'sign'], ok: ['good', 'ok'] };
+const LEVELS = [
+  ['数据不足', 'muted', 'na'],
+  ['正常', 'good', 'ok'],
+  ['留意', 'warn', 'sign'],
+  ['警惕', 'serious', 'done'],
+  ['危险', 'critical', 'over']
+];
+const CATS = ['提前命中', '同期或滞后确认', '误报', '待观察'];
+const CASE_ORDER = ['之后触发', '下一步先触发', '未触发', '待观察', '数据不足'];
+const ROLE_GROUPS = [
+  ['main', '主指标', '决定这个节点是否触发'],
+  ['aux', '辅助指标', '用来判断有没有苗头'],
+  ['display', '展示指标', '只展示，不参与判断']
+];
+const EXTERNAL_PROB_ID = '13';
+const UPDATE_CMD = 'python crisis/pipeline/run.py';
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const chip = (color, icon, label) => `<span class="chip c-${color}">${ICON[icon]}<span>${esc(label)}</span></span>`;
+const link = (url, text = '出处 ↗') => /^https?:\/\//i.test(url || '') ? `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>` : '<span class="none">暂无出处</span>';
+const parts = s => String(s).slice(0, 10).split('-').map(Number);
+const fmtMonth = s => { if (!s) return ''; const [y, m] = parts(s); return `${y} 年 ${m} 月`; };
+const fmtDay = s => { if (!s) return ''; const [y, m, d] = parts(s); return `${y} 年 ${m} 月 ${d} 日`; };
+const fmtTime = s => s ? `${fmtDay(s)} ${String(s).slice(11, 16)}` : '';
+const span = list => { const a = Math.min(...list), b = Math.max(...list); return a === b ? `${a} 个月` : `${a} 到 ${b} 个月`; };
+
+function fmtPeriod(date, freq, cumulative) {
+  if (!date) return '';
+  const [y, m] = parts(date);
+  const q = Math.floor((m - 1) / 3);
+  if (freq === 'monthly') return fmtMonth(date);
+  if (freq === 'weekly') return `截至 ${fmtDay(date)} 的一周`;
+  if (freq === 'quarterly') return cumulative ? `${y} 年${['一季度', '上半年', '前三季度', '全年'][q]}` : `${y} 年第${['一', '二', '三', '四'][q]}季度`;
+  return fmtDay(date);
+}
+
+function numText(v, dec) {
+  if (typeof v !== 'number') return esc(v);
+  const t = dec === null || dec === undefined ? String(v) : v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+  return /^-0(\.0+)?$/.test(t) ? t.slice(1) : t;
+}
+function fmtNum(v, dec, unit) {
+  if (v === null || v === undefined || v === '') return '';
+  const t = numText(v, dec);
+  if (!unit || typeof v !== 'number') return t;
+  return unit === '%' ? t + '%' : `${t} ${esc(unit)}`;
+}
+
+const D = window.CRISIS_DATA;
+
+if (!D) {
+  document.body.className = 'empty';
+  document.body.innerHTML = `
+    <main class="empty-box">
+      <h1>金融危机预警</h1>
+      <p>还没有数据，请先运行更新命令。</p>
+      <p>打开终端，进入项目目录后运行：</p>
+      <pre>${UPDATE_CMD}</pre>
+      <p>命令会下载公开数据并生成 data/latest.js，运行结束后刷新这个页面。</p>
+    </main>`;
+} else {
+  start();
+}
+
+function start() {
+  const B = D.backtest || {};
+  const NODES = D.nodes || [];
+  const IND = Object.fromEntries((D.indicators || []).map(i => [i.id, i]));
+  const btNode = id => (B.nodes || []).find(n => n.id === id);
+  const signal = (node, kind, ind) => (B.signals || []).find(s => s.node === node && s.kind === kind && (ind === undefined || s.indicator === ind));
+  const nodeOf = id => NODES.find(n => n.id === id);
+  const nodeRef = id => { const n = nodeOf(id); return n ? `${id}「${esc(n.name)}」` : esc(id); };
+  const nodeChip = n => chip(...NODE_LOOK[n.status] || NODE_LOOK.insufficient, n.label);
+  const since = s => s ? `${fmtMonth(s)}起可以判断` : '';
+
+  function indChip(ind) {
+    if (ind.missing_reason) return chip('muted', 'na', ind.label);
+    if (ind.level && IND_LOOK[ind.level]) return chip(...IND_LOOK[ind.level], ind.label);
+    if (ind.label) return chip('serious', 'flag', ind.label);
+    return chip('muted', 'none', '只展示');
+  }
+
+  function classText(src) {
+    if (src.unclassified_reason) return `历史上出现过 ${(src.rounds || []).length} 轮，${esc(src.unclassified_reason)}`;
+    const s = src.summary || {};
+    const rounds = src.rounds || [];
+    const total = CATS.reduce((t, c) => t + (s[c] || 0), s['起点未知'] || 0);
+    if (!total) return `历史上没有出现过（${since(src.judged_start)}）`;
+    const leads = rounds.filter(r => r.category === '提前命中' && r.lead_months != null).map(r => r.lead_months);
+    const lags = rounds.filter(r => r.category === '同期或滞后确认' && r.lag_months != null).map(r => r.lag_months);
+    const list = [
+      `提前命中 ${s['提前命中'] || 0} 轮${leads.length ? `（提前 ${span(leads)}，估算）` : ''}`,
+      `同期或滞后确认 ${s['同期或滞后确认'] || 0} 轮${lags.length ? `（晚 ${span(lags)}）` : ''}`,
+      `误报 ${s['误报'] || 0} 轮`,
+      `待观察 ${s['待观察'] || 0} 轮`
+    ];
+    let t = `历史上出现过 ${total} 轮：${list.join('、')}`;
+    if (s['起点未知']) t += `；还有 ${s['起点未知']} 轮起点未知，不分类`;
+    return t;
+  }
+
+  function catText(r) {
+    if (r.unknown_start) return '起点未知，不分类';
+    if (!r.category) return '对照数据缺失，没有分类';
+    let t = r.category;
+    if (r.category === '提前命中' && r.lead_months != null) t += `，提前 ${r.lead_months} 个月（估算）`;
+    if (r.category === '同期或滞后确认' && r.lag_months != null) t += `，晚 ${r.lag_months} 个月`;
+    if (r.event_start) t += `<span class="sub">对照的事件始于 ${fmtMonth(r.event_start)}</span>`;
+    return t;
+  }
+
+  function roundTable(rounds, classified) {
+    if (!rounds || !rounds.length) return '';
+    const rows = rounds.map(r => `<tr>
+      <td>${fmtMonth(r.start)}</td>
+      <td>${fmtDay(r.visible)}</td>
+      <td>${fmtMonth(r.end)}${r.close ? '' : '<span class="sub">这一轮还没结束</span>'}</td>
+      <td>${classified ? catText(r) : (r.unknown_start ? '起点未知' : (r.close ? '已结束' : '进行中'))}</td>
+    </tr>`).join('');
+    return `<details class="more"><summary>展开每一轮的日期（${rounds.length} 轮）</summary>
+      <table class="rounds num"><thead><tr><th>开始（数据所属月份）</th><th>估计可见日</th><th>最后一次满足</th><th>${classified ? '分类' : '状态'}</th></tr></thead><tbody>${rows}</tbody></table>
+    </details>`;
+  }
+
+  const against = sig => `对照 ${nodeRef(sig.against)}的事件，观察窗口 ${sig.window_months} 个月`;
+
+  function renderMeta() {
+    const items = [`<span>计算日期 <b class="num">${fmtDay(D.as_of)}</b></span>`];
+    items.push(D.data_fetched_at
+      ? `<span>数据下载于 <b class="num">${fmtTime(D.data_fetched_at)}</b></span>`
+      : `<span>还没有成功下载过数据</span>`);
+    if (D.data_fetched_at) {
+      const days = Math.floor((Date.now() - new Date(D.data_fetched_at).getTime()) / 86400000);
+      if (days > 7) items.push(chip('serious', 'over', `数据已经 ${days} 天没有更新，请运行更新命令`));
+    }
+    const fails = D.fetch_failures || [];
+    if (fails.length) items.push(chip('serious', 'over', `本次有 ${fails.length} 个指标下载失败`));
+    const warns = D.warnings || [];
+    if (warns.length) items.push(chip('serious', 'over', `人工录入文件有 ${warns.length} 处问题`));
+    document.getElementById('meta').innerHTML = items.join('');
+  }
+
+  function renderLevel() {
+    const L = D.level || {};
+    const look = LEVELS.find(l => l[0] === L.level) || LEVELS[0];
+    const decided = L.decided_by || [];
+    const insufficient = L.insufficient_nodes || [];
+    const unknown = L.watch_unknown_nodes || [];
+    let side;
+    if (L.level === '数据不足') side = `${decided.join('、')} 数据不足，其余节点没有触发或苗头`;
+    else if (decided.length) side = `由 ${decided.join('、')} 决定`;
+    const n1Watch = NODES.some(n => n.id === 'N1' && n.status === 'watch');
+    if (!decided.length && L.level !== '数据不足') side = n1Watch ? '除 N1 外，没有节点触发或有苗头' : '没有节点触发或有苗头';
+    const rule = '危险：N5 或 N6 已触发。警惕：N2、N3、N4 任一已触发。留意：N1 已出现，或 N2 到 N6 任一有苗头。';
+    document.getElementById('cellLevel').innerHTML = `
+      <div class="cell-label">当前预警等级</div>
+      <div class="cell-figure c-${look[1]}">
+        <span class="big word">${ICON[look[2]]}${esc(L.level)}</span>
+        <span class="cell-side">${esc(side)}</span>
+      </div>
+      <div class="levels" role="img" aria-label="预警等级，当前为${esc(L.level)}" title="${rule}">
+        ${LEVELS.map((l, i) => `${i === 1 ? '<div></div>' : ''}<div class="c-${l[1]}${l[0] === L.level ? ' on' : ''}"><span></span><em>${l[0]}</em></div>`).join('')}
+      </div>
+      <p class="cell-note">数据不足的节点：${insufficient.length ? insufficient.join('、') : '无'}。苗头无法判断的节点：${unknown.length ? unknown.join('、') : '无'}。</p>
+      ${n1Watch ? '<p class="cell-note">N1 有苗头，但 N1 只有 1 项偏高时按规则不计入等级。</p>' : ''}`;
+  }
+
+  function mainCell(elId, nodeId, label, useMeasure, dateText) {
+    const node = nodeOf(nodeId);
+    const el = document.getElementById(elId);
+    if (!node) { el.innerHTML = `<div class="cell-label">${label}</div><p class="cell-note">数据文件里没有 ${nodeId}</p>`; return; }
+    const ind = IND[node.main[0]] || {};
+    const bn = btNode(nodeId);
+    const hasValue = !ind.missing_reason || ind.missing_reason === '已过期';
+    const v = useMeasure ? ind.measure : ind.value;
+    const dec = useMeasure ? ind.measure_decimals : ind.decimals;
+    const unit = useMeasure ? ind.measure_unit : ind.unit;
+    const figure = hasValue && v !== null && v !== undefined
+      ? `<span class="big num">${numText(v, dec)}<small>${esc(unit || '')}</small></span><span class="cell-side">${dateText(ind)}</span>`
+      : `<span class="big word">数据不足</span><span class="cell-side">${esc(ind.missing_reason || '')}</span>`;
+    el.innerHTML = `
+      <div class="cell-label">${label}</div>
+      <div class="cell-figure">${figure}</div>
+      <div class="cell-line">${nodeChip(node)}<span>${nodeId} ${esc(node.name)}</span></div>
+      <p class="cell-note">规则：${esc(ind.rule_text || node.trigger_text)}</p>
+      ${bn ? `<p class="cell-note">${nodeId} 历史上触发过 ${bn.round_count} 轮（${since(bn.judged_start)}）</p>` : ''}
+      ${node.month_trigger_day ? `<p class="cell-note">本月 ${fmtDay(node.month_trigger_day)}曾达到触发线，最新交易日已回到线内</p>` : ''}`;
+  }
+
+  function renderEra() {
+    const el = document.getElementById('cellEra');
+    const p = (B.periods || [])[0];
+    if (!p) { el.innerHTML = '<div class="cell-label">历史案例</div><p class="cell-note">数据文件里没有历史时间段</p>'; return; }
+    const [y0] = parts(p.start), [y1] = parts(p.end);
+    const rows = (p.nodes || []).map(n => {
+      let text;
+      if (n.status !== '有数据') text = `<span class="na">${ICON.na}数据不足</span>`;
+      else if (!n.rounds.length) text = '<span class="muted">这段时间没有触发</span>';
+      else {
+        const r = n.rounds[0];
+        text = r.unknown_start ? `${fmtMonth(r.start)}起，起点未知` : fmtMonth(r.start);
+      }
+      return `<li><span class="node-idx num">${esc(n.node)}</span><span class="num">${text}</span></li>`;
+    }).join('');
+    const manual = (B.cases || []).flatMap(c => c.manual || []).filter(m => {
+      const y = Number((String(m.time).match(/\d{4}/) || [])[0]);
+      return y >= y0 && y <= y1;
+    });
+    el.innerHTML = `
+      <div class="cell-label">历史案例：${esc(p.name)}（${fmtMonth(p.start)}至 ${fmtMonth(p.end)}）</div>
+      <ul class="era">${rows}</ul>
+      <p class="cell-note">上面是各节点在这段时间里处于触发中的那一轮的开始月份</p>
+      ${manual.map(m => `<p class="cell-note"><span class="tag">人工案例</span>${esc(m.time)}，${esc(m.title)}。不计入轮数。${link(m.source_url)}</p>`).join('')}`;
+  }
+
+  function renderTimeline() {
+    tl.innerHTML = NODES.map((n, i) => {
+      const look = NODE_LOOK[n.status] || NODE_LOOK.insufficient;
+      return `
+      <li class="node">
+        <span class="marker c-${look[0]}">${ICON[look[1]]}</span>
+        <button class="node-btn" type="button" data-i="${i}" aria-current="${i === current}">
+          <span class="node-top">
+            <span class="node-idx num">${esc(n.id)}</span>
+            <span class="node-name">${esc(n.name)}</span>
+            ${nodeChip(n)}
+          </span>
+          <span class="node-sub">${esc(n.summary)}</span>
+        </button>
+      </li>`;
+    }).join('');
+  }
+
+  function valueCell(ind) {
+    const date = fmtPeriod(ind.date, ind.frequency, ind.cumulative);
+    if (ind.value === null || ind.value === undefined) return `<div class="ind-val"><span>暂无数值</span></div>`;
+    const lines = [];
+    if (ind.measure !== undefined && ind.measure !== null) {
+      lines.push(`<span class="cap">${esc(ind.measure_text || '')}</span><b class="num">${fmtNum(ind.measure, ind.measure_decimals, ind.measure_unit)}</b>`);
+      lines.push(`<span class="num">当前 ${fmtNum(ind.value, ind.decimals, ind.unit)}</span>`);
+    } else {
+      lines.push(`<b class="num">${fmtNum(ind.value, ind.decimals, ind.unit)}</b>`);
+    }
+    if (ind.prior) lines.push(`<span class="num">约一年前 ${fmtNum(ind.prior.value, ind.decimals, ind.unit)}（${fmtDay(ind.prior.date)}）</span>`);
+    lines.push(`<span class="num">${date}</span>`);
+    return `<div class="ind-val">${lines.join('')}</div>`;
+  }
+
+  function indHistory(ind, node) {
+    if (ind.role === 'display') return '';
+    const bn = btNode(node.id);
+    if (ind.role === 'main' && node.main.length === 1) {
+      if (!bn) return '';
+      const text = (bn.summary || bn.unclassified_reason) ? classText(bn) : `历史上触发过 ${bn.round_count} 轮（${since(bn.judged_start)}）`;
+      return `<p class="ind-hist">${text}。每一轮的日期见右边的“历史触发记录”</p>`;
+    }
+    const sig = signal(node.id, 'indicator', ind.id);
+    if (!sig) return '<p class="ind-hist muted">这个指标没有历史统计</p>';
+    return `<div class="ind-hist">${classText(sig)}。${against(sig)}${roundTable(sig.rounds, true)}</div>`;
+  }
+
+  function indRow(ind, node) {
+    const name = esc(ind.name) + (ind.params && ind.params.city ? `（${esc(ind.params.city)}，${esc(ind.params.house_type || '')}）` : '');
+    const fail = ind.fetch_failed ? `<p class="fail">${ICON.flag}<span>本次下载失败，用的是上次下载的数据，数据只到 ${fmtPeriod(ind.date, ind.frequency, ind.cumulative)}</span></p>` : '';
+    return `
+      <div class="ind">
+        <div>
+          <div class="ind-name">${name}<small>编号 ${esc(ind.id)}</small></div>
+          <div class="ind-explain">${esc(ind.explain)}</div>
+          <div class="ind-rule">规则：${esc(ind.rule_text)}</div>
+          ${fail}
+          ${indHistory(ind, node)}
+        </div>
+        ${valueCell(ind)}
+        <div class="ind-side">${indChip(ind)}${link(ind.url || ((ind.entries || []).slice(-1)[0] || {}).link)}</div>
+      </div>`;
+  }
+
+  function hints(n) {
+    const out = [];
+    const hint = (color, icon, text) => `<p class="hint c-${color}">${ICON[icon]}<span>${text}</span></p>`;
+    if (n.prev_hint) {
+      const h = n.prev_hint;
+      out.push(hint('serious', 'over', `上一步 ${nodeRef(h.prev)}这一轮始于 ${fmtMonth(h.start)}（估计 ${fmtDay(h.visible)} 能看到），还没有结束。这个节点仍按自己的数据判断，历史上同样情况之后发生了什么，见右边的“上一步触发后的历史案例”。`));
+    }
+    if (n.month_trigger_day) out.push(hint('serious', 'over', `本月 ${fmtDay(n.month_trigger_day)}曾达到“${esc(n.trigger_text)}”，最新交易日已经回到线内，所以状态按最新交易日显示。`));
+    if (n.watch_unknown) out.push(hint('muted', 'na', `苗头无法判断：判断“${esc(n.watch_text)}”需要的辅助指标数据不足，所以只显示未触发。`));
+    if (n.trials) {
+      const say = s => s === 'trigger' ? `满足“${esc(n.trigger_text)}”` : s === 'watch' ? `满足“${esc(n.watch_text)}”` : '两条都不满足';
+      const same = n.trials.as_hit === n.trials.as_not_hit;
+      out.push(hint('muted', 'na', `${n.main.length} 项里有数据缺失。缺失的项按偏高算，结果是${say(n.trials.as_hit)}；按不偏高算，结果是${say(n.trials.as_not_hit)}。${same ? '两次结果相同，照常显示。' : '两次结果不同，所以显示数据不足。'}`));
+    }
+    return out.length ? `<div class="hints">${out.join('')}</div>` : '';
+  }
+
+  function historyBlock(n) {
+    const bn = btNode(n.id);
+    if (!bn) return '';
+    let body;
+    if (bn.summary || bn.unclassified_reason) {
+      const ref = (D.reference_series || []).find(r => r.id === bn.event_source);
+      body = `<p>${classText(bn)}。</p>
+        <p class="muted">对照美国国家经济研究局认定的衰退期分类。官方认定公布得晚，只用来检验历史，不用来判断现在。${ref ? link(ref.url, '衰退期出处 ↗') : ''}</p>
+        ${roundTable(bn.rounds, true)}`;
+    } else {
+      const trig = signal(n.id, 'trigger');
+      if (trig) {
+        body = `<p>“${esc(n.trigger_text)}”${classText(trig)}。</p><p class="muted">${n.id} 是状态，不算事件，所以${against(trig)}。</p>${roundTable(trig.rounds, true)}`;
+      } else {
+        body = `<p>可判断的数据从 ${fmtMonth(bn.judged_start)}开始，历史上触发过 ${bn.round_count} 轮${bn.unknown_start_count ? `，其中 ${bn.unknown_start_count} 轮起点未知` : ''}。</p>${roundTable(bn.rounds, false)}`;
+      }
+    }
+    const watch = signal(n.id, 'watch');
+    const watchBody = watch ? `<p>“${esc(n.watch_text)}”${classText(watch)}。${against(watch)}。</p>${roundTable(watch.rounds, true)}` : '';
+    return `
+      <section class="block">
+        <h3>历史触发记录 <span>初步回看，提前量为估算</span></h3>
+        ${body}
+      </section>
+      ${watchBody ? `<section class="block"><h3>有苗头条件的历史 <span>初步回看</span></h3>${watchBody}</section>` : ''}`;
+  }
+
+  function casesBlock(n) {
+    const c = (B.cases || []).find(x => x.pair && x.pair[1] === n.id);
+    if (!c) return '';
+    const prev = c.pair[0];
+    const items = c.items || [];
+    const counts = {};
+    items.forEach(i => { counts[i.label] = (counts[i.label] || 0) + 1; });
+    const summary = CASE_ORDER.filter(l => counts[l]).map(l => `${l} ${counts[l]} 轮`).join('、');
+    const w = c.window_months;
+    const line = i => {
+      const p = fmtMonth(i.prev_start);
+      let t;
+      if (i.label === '之后触发') t = `上一步始于 ${p}，这个节点 ${fmtMonth(i.next_start)}开始触发，相差 ${i.months} 个月`;
+      else if (i.label === '下一步先触发') t = `上一步始于 ${p}，这个节点的一轮已在 ${fmtMonth(i.next_start)}开始、当时还没有结束，相差 ${i.months} 个月`;
+      else if (i.label === '未触发') t = `上一步始于 ${p}，之后 ${w} 个月内这个节点没有触发`;
+      else if (i.label === '待观察') t = `上一步始于 ${p}，到现在还不满 ${w} 个月，这个节点还没有触发`;
+      else t = `上一步始于 ${p}，这个节点那段时间没有数据`;
+      const vis = `估计可见日：上一步 ${fmtDay(i.prev_visible)}${i.next_visible ? `，这个节点 ${fmtDay(i.next_visible)}` : ''}`;
+      return `<li><span class="tag">${esc(i.label)}</span>${t}<span class="sub num">${vis}</span></li>`;
+    };
+    const shown = items.filter(i => i.label !== '数据不足');
+    const nodata = items.filter(i => i.label === '数据不足');
+    const manual = (c.manual || []).map(m => `<li><span class="tag">人工案例</span>${esc(m.time)}，${esc(m.title)}。${esc(m.note)}。${link(m.source_url)}</li>`).join('');
+    return `
+      <section class="block">
+        <h3>上一步触发后的历史案例 <span>月份都是数据所属月份</span></h3>
+        <p>上一步 ${nodeRef(prev)}历史上每次开始触发后，看这个节点 ${w} 个月内的情况：${summary || '没有案例'}。不同案例的间隔不能相加，也不能用来推算这一次的时间。</p>
+        <ul class="cases num">
+          ${shown.map(line).join('')}
+          ${nodata.length ? `<li><span class="tag">数据不足</span>另有 ${nodata.length} 轮，这个节点那段时间没有数据（${fmtMonth(c.next_judged_start)}起才有）：上一步分别始于 ${nodata.map(i => fmtMonth(i.prev_start)).join('、')}</li>` : ''}
+          ${manual}
+        </ul>
+      </section>`;
+  }
+
+  function externalBlock(n) {
+    const ind = IND[EXTERNAL_PROB_ID];
+    if (!ind || ind.node !== n.id) return '';
+    const entries = (ind.entries || []).slice().reverse();
+    const rows = entries.map(e => `<tr><td>${esc(e.source)}</td><td>${fmtNum(e.value, ind.decimals, ind.unit)}</td><td>${fmtDay(e.date)}</td><td>${esc(e.scope)}</td><td>${link(e.link, '链接 ↗')}</td></tr>`).join('');
+    return `
+      <section class="block">
+        <h3>外部机构的衰退概率 <span>人工录入，只展示，不参与任何判断</span></h3>
+        ${entries.length
+          ? `<table class="rounds num"><thead><tr><th>来源</th><th>概率</th><th>日期</th><th>口径</th><th>出处</th></tr></thead><tbody>${rows}</tbody></table>`
+          : `<p>还没有录入。在 crisis/data/manual.csv 里加一行，编号填 ${EXTERNAL_PROB_ID}，写清来源、数值、日期、口径和链接。</p>`}
+        <p class="muted">口径要分清“未来 12 个月内开始衰退”和“12 个月后那个时点处于衰退”，两者不是一回事。</p>
+      </section>`;
+  }
+
+  function terms() {
+    return `
+      <details class="more block">
+        <summary>这些词是什么意思</summary>
+        <dl class="terms">
+          <dt>一轮</dt><dd>规则从不满足变成满足，算一轮开始；之后连续 6 个月不满足（季度数据连续 2 期），这一轮才算结束。</dd>
+          <dt>数据所属月份</dt><dd>这个数值描述的是哪个月，不是公布的日子。</dd>
+          <dt>估计可见日</dt><dd>数据所属时期的最后一天，加上这类数据一般要等的公布天数，表示大概哪天能看到这个数。</dd>
+          <dt>提前命中</dt><dd>数据能看到的时候事件还没开始，并且事件在观察窗口内开始了。</dd>
+          <dt>同期或滞后确认</dt><dd>数据描述的月份已经在事件期间里，或者数据能看到时事件已经开始了。</dd>
+          <dt>误报</dt><dd>数据能看到以后，观察窗口内事件没有发生。</dd>
+          <dt>待观察</dt><dd>数据能看到到现在还不满一个观察窗口，事件也还没开始，暂时不能下结论。</dd>
+          <dt>观察窗口</dt><dd>判断提前命中还是误报时，往后看多少个月。慢慢累积的指标看 24 个月，其余看 12 个月。</dd>
+          <dt>同比</dt><dd>和去年同一个月（或同一段时间）相比。</dd>
+          <dt>百分点</dt><dd>两个百分比直接相减的差。比如失业率从 5.0% 变成 5.5%，是高了 0.5 个百分点。</dd>
+          <dt>估算</dt><dd>公布日是按固定天数估计的，历史数值也可能在公布后修订过，所以提前了几个月只是大概。</dd>
+        </dl>
+      </details>`;
+  }
+
+  function renderDetail(animate) {
+    const n = NODES[current];
+    const bn = btNode(n.id);
+    const inds = (D.indicators || []).filter(i => i.node === n.id);
+    const groups = ROLE_GROUPS.map(([role, title, note]) => {
+      const list = inds.filter(i => i.role === role);
+      return list.length ? `<section class="group"><h3>${title} <span>${note}</span></h3>${list.map(i => indRow(i, n)).join('')}</section>` : '';
+    }).join('');
+    detail.innerHTML = `
+      <header class="d-head">
+        <div>
+          <div class="d-kicker num">${esc(n.id)} · 第 ${current + 1} 个节点，共 ${NODES.length} 个</div>
+          <h2>${esc(n.name)}</h2>
+        </div>
+        ${nodeChip(n)}
+      </header>
+      <p class="d-lead">${esc(n.summary)}</p>
+      ${hints(n)}
+      <dl class="d-stats">
+        <div><dt>触发条件</dt><dd>${esc(n.trigger_text)}</dd></div>
+        <div><dt>有苗头条件</dt><dd>${esc(n.watch_text)}</dd></div>
+        <div><dt>历史上触发过</dt><dd class="n num">${bn ? `${bn.round_count} 轮` : '无记录'}${bn ? `<small>${since(bn.judged_start)}</small>` : ''}</dd></div>
+      </dl>
+      <div class="d-cols">
+        <section>${groups}</section>
+        <section>
+          ${historyBlock(n)}
+          ${casesBlock(n)}
+          ${externalBlock(n)}
+          <section class="block">
+            <h3>走到这一步，你该做什么</h3>
+            <ol class="todo">${(n.todo || []).map((t, i) => `<li><span class="num">${i + 1}</span>${esc(t)}</li>`).join('')}</ol>
+          </section>
+          ${terms()}
+        </section>
+      </div>`;
+    detail.scrollTop = 0;
+    if (animate) {
+      detail.classList.remove('swap');
+      void detail.offsetWidth;
+      detail.classList.add('swap');
+    }
+  }
+
+  function select(i) {
+    current = i;
+    tl.querySelectorAll('.node-btn').forEach((b, k) => b.setAttribute('aria-current', k === i));
+    renderDetail(true);
+  }
+
+  const tl = document.getElementById('tl');
+  const detail = document.getElementById('detail');
+  const first = (D.level && D.level.decided_by && D.level.decided_by[0]) || '';
+  let current = Math.max(0, NODES.findIndex(n => n.id === first));
+
+  tl.addEventListener('click', e => {
+    const btn = e.target.closest('.node-btn');
+    if (btn) select(Number(btn.dataset.i));
+  });
+  tl.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const i = Math.min(NODES.length - 1, Math.max(0, current + (e.key === 'ArrowDown' ? 1 : -1)));
+    select(i);
+    tl.querySelectorAll('.node-btn')[i].focus();
+  });
+
+  renderMeta();
+  renderLevel();
+  mainCell('cellMarket', 'N2', '美国股市：标普 500 距一年内最高点的跌幅', true, ind => `最新交易日<br>${fmtDay(ind.date)}`);
+  mainCell('cellJobs', 'N5', '国内就业压力：城镇调查失业率比去年同月', false, ind => `数据所属月份<br>${fmtMonth(ind.date)}`);
+  renderEra();
+  renderTimeline();
+  renderDetail(false);
+}
+</script>
+</body>
+</html>

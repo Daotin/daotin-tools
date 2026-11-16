@@ -8,6 +8,13 @@ dist-ssr
 .env.local
 .env.*.local
 
+# 金融危机预警
+crisis/.venv/
+crisis/data/raw/
+crisis/data/backtest.json
+crisis/data/fetch_status.json
+__pycache__/
+
 # 日志
 logs
 *.log
