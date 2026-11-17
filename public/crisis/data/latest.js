@@ -1,7 +1,7 @@
 window.CRISIS_DATA = {
-  "generated_at": "2026-11-16T19:06:21+08:00",
-  "as_of": "2026-11-16",
-  "data_fetched_at": "2026-11-16T18:23:55+08:00",
+  "generated_at": "2026-11-17T05:14:09+00:00",
+  "as_of": "2026-11-17",
+  "data_fetched_at": "2026-11-17T05:13:32+00:00",
   "level": {
     "level": "正常",
     "decided_by": [],
@@ -155,8 +155,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 40.710609,
-      "date": "2026-10-01",
+      "value": 39.374477,
+      "date": "2026-11-01",
       "level": "hit",
       "label": "偏高",
       "missing_reason": null,
@@ -224,8 +224,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 5.1,
-      "date": "2026-11-12",
+      "value": 5.15,
+      "date": "2026-11-13",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -247,12 +247,12 @@ window.CRISIS_DATA = {
       "measure_unit": "%",
       "measure_decimals": 1,
       "cumulative": null,
-      "value": 7561.669922,
-      "date": "2026-11-13",
+      "value": 7416.589844,
+      "date": "2026-11-16",
       "level": "ok",
       "label": "未触发",
       "missing_reason": null,
-      "measure": 3.290223,
+      "measure": 5.145721,
       "month_trigger_day": null,
       "fetch_failed": false
     },
@@ -295,8 +295,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 18.7,
-      "date": "2026-11-12",
+      "value": 19.3,
+      "date": "2026-11-13",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -318,8 +318,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 1.48,
-      "date": "2026-11-12",
+      "value": 1.47,
+      "date": "2026-11-13",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -363,8 +363,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 0.83,
-      "date": "2026-11-13",
+      "value": 0.78,
+      "date": "2026-11-16",
       "level": "ok",
       "label": "未越线",
       "missing_reason": null,
@@ -455,7 +455,7 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 32.127732,
+      "value": 31.936086,
       "date": "2026-10-01",
       "level": "ok",
       "label": "未越线",
@@ -478,7 +478,7 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 35.227674,
+      "value": 35.03388,
       "date": "2026-10-01",
       "level": null,
       "label": null,
@@ -664,12 +664,11 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 0.7,
-      "date": "2026-10-01",
+      "value": null,
+      "date": null,
       "level": null,
-      "label": null,
-      "missing_reason": null,
-      "fetch_failed": false
+      "label": "数据不足（下载失败）",
+      "missing_reason": "下载失败"
     }
   ],
   "reference_series": [
@@ -679,10 +678,18 @@ window.CRISIS_DATA = {
       "url": "https://fred.stlouisfed.org/series/USREC"
     }
   ],
-  "fetch_failures": [],
+  "fetch_failures": [
+    {
+      "id": "23",
+      "name": "物价（CPI）同比",
+      "error": "ChunkedEncodingError: Response ended prematurely",
+      "kept_previous_file": false,
+      "end": null
+    }
+  ],
   "warnings": [],
   "backtest": {
-    "as_of": "2026-11-16",
+    "as_of": "2026-11-17",
     "nodes": [
       {
         "id": "N1",
@@ -1343,8 +1350,8 @@ window.CRISIS_DATA = {
           {
             "start": "2022-11",
             "visible": "2022-12-20",
-            "end": "2024-04",
-            "close": "2024-10",
+            "end": "2024-05",
+            "close": "2024-11",
             "unknown_start": false
           }
         ],
@@ -1552,7 +1559,7 @@ window.CRISIS_DATA = {
           {
             "start": "2010-03",
             "visible": "2010-04-10",
-            "end": "2026-10",
+            "end": "2026-11",
             "close": null,
             "unknown_start": false,
             "category": "误报"
@@ -2752,8 +2759,8 @@ window.CRISIS_DATA = {
           {
             "start": "2022-11",
             "visible": "2022-12-20",
-            "end": "2024-04",
-            "close": "2024-10",
+            "end": "2024-05",
+            "close": "2024-11",
             "unknown_start": false
           }
         ]
@@ -2806,8 +2813,8 @@ window.CRISIS_DATA = {
           {
             "start": "2022-11",
             "visible": "2022-12-20",
-            "end": "2023-10",
-            "close": "2024-04",
+            "end": "2024-04",
+            "close": "2024-10",
             "unknown_start": false
           }
         ]
