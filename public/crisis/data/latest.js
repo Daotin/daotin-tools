@@ -1,7 +1,7 @@
 window.CRISIS_DATA = {
-  "generated_at": "2026-11-17T05:14:09+00:00",
-  "as_of": "2026-11-17",
-  "data_fetched_at": "2026-11-17T05:13:32+00:00",
+  "generated_at": "2026-11-18T04:41:01+00:00",
+  "as_of": "2026-11-18",
+  "data_fetched_at": "2026-11-18T04:40:54+00:00",
   "level": {
     "level": "正常",
     "decided_by": [],
@@ -224,8 +224,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 5.15,
-      "date": "2026-11-13",
+      "value": 5.12,
+      "date": "2026-11-16",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -247,12 +247,12 @@ window.CRISIS_DATA = {
       "measure_unit": "%",
       "measure_decimals": 1,
       "cumulative": null,
-      "value": 7416.589844,
-      "date": "2026-11-16",
+      "value": 7340.529785,
+      "date": "2026-11-17",
       "level": "ok",
       "label": "未触发",
       "missing_reason": null,
-      "measure": 5.145721,
+      "measure": 6.118489,
       "month_trigger_day": null,
       "fetch_failed": false
     },
@@ -295,8 +295,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 19.3,
-      "date": "2026-11-13",
+      "value": 22.91,
+      "date": "2026-11-16",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -318,8 +318,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 1.47,
-      "date": "2026-11-13",
+      "value": 1.5,
+      "date": "2026-11-16",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -363,8 +363,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 0.78,
-      "date": "2026-11-16",
+      "value": 0.77,
+      "date": "2026-11-17",
       "level": "ok",
       "label": "未越线",
       "missing_reason": null,
@@ -525,7 +525,7 @@ window.CRISIS_DATA = {
       "measure_decimals": null,
       "cumulative": null,
       "value": 0.0,
-      "date": "2026-09-01",
+      "date": "2026-10-01",
       "level": "ok",
       "label": "未触发",
       "missing_reason": null,
@@ -619,8 +619,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": -14.240708,
-      "date": "2026-11-16",
+      "value": -14.547203,
+      "date": "2026-11-17",
       "level": null,
       "label": "下跌",
       "missing_reason": null,
@@ -664,11 +664,12 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": null,
-      "date": null,
+      "value": 0.7,
+      "date": "2026-10-01",
       "level": null,
-      "label": "数据不足（下载失败）",
-      "missing_reason": "下载失败"
+      "label": null,
+      "missing_reason": null,
+      "fetch_failed": false
     }
   ],
   "reference_series": [
@@ -678,18 +679,10 @@ window.CRISIS_DATA = {
       "url": "https://fred.stlouisfed.org/series/USREC"
     }
   ],
-  "fetch_failures": [
-    {
-      "id": "23",
-      "name": "物价（CPI）同比",
-      "error": "ChunkedEncodingError: Response ended prematurely",
-      "kept_previous_file": false,
-      "end": null
-    }
-  ],
+  "fetch_failures": [],
   "warnings": [],
   "backtest": {
-    "as_of": "2026-11-17",
+    "as_of": "2026-11-18",
     "nodes": [
       {
         "id": "N1",
@@ -1367,7 +1360,7 @@ window.CRISIS_DATA = {
         "rule": "连续 2 个月比去年同月高出 0.5 个百分点以上",
         "data_start": "2019-01-01",
         "judged_start": "2019-01",
-        "judged_end": "2026-09",
+        "judged_end": "2026-10",
         "rounds": [
           {
             "start": "2020-03",
