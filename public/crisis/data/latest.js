@@ -1,10 +1,12 @@
 window.CRISIS_DATA = {
-  "generated_at": "2026-11-20T04:13:32+00:00",
-  "as_of": "2026-11-20",
-  "data_fetched_at": "2026-11-20T04:13:28+00:00",
+  "generated_at": "2026-11-21T04:14:59+00:00",
+  "as_of": "2026-11-21",
+  "data_fetched_at": "2026-11-21T04:14:56+00:00",
   "level": {
-    "level": "正常",
-    "decided_by": [],
+    "level": "留意",
+    "decided_by": [
+      "N2"
+    ],
     "insufficient_nodes": [],
     "watch_unknown_nodes": []
   },
@@ -50,8 +52,8 @@ window.CRISIS_DATA = {
       "trials": null,
       "month_trigger_day": null,
       "prev_hint": null,
-      "status": "ok",
-      "label": "未触发"
+      "status": "watch",
+      "label": "有苗头"
     },
     {
       "id": "N3",
@@ -224,8 +226,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 5.07,
-      "date": "2026-11-18",
+      "value": 5.04,
+      "date": "2026-11-19",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -247,12 +249,12 @@ window.CRISIS_DATA = {
       "measure_unit": "%",
       "measure_decimals": 1,
       "cumulative": null,
-      "value": 7175.830078,
-      "date": "2026-11-19",
-      "level": "ok",
-      "label": "未触发",
+      "value": 6910.390137,
+      "date": "2026-11-20",
+      "level": "watch",
+      "label": "有苗头",
       "missing_reason": null,
-      "measure": 8.224912,
+      "measure": 11.619749,
       "month_trigger_day": null,
       "fetch_failed": false
     },
@@ -295,8 +297,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 24.56,
-      "date": "2026-11-18",
+      "value": 28.44,
+      "date": "2026-11-19",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -318,8 +320,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 1.52,
-      "date": "2026-11-18",
+      "value": 1.56,
+      "date": "2026-11-19",
       "level": null,
       "label": null,
       "missing_reason": null,
@@ -363,8 +365,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": 0.7,
-      "date": "2026-11-19",
+      "value": 0.6,
+      "date": "2026-11-20",
       "level": "ok",
       "label": "未越线",
       "missing_reason": null,
@@ -619,8 +621,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": -13.883322,
-      "date": "2026-11-19",
+      "value": -15.742053,
+      "date": "2026-11-20",
       "level": null,
       "label": "下跌",
       "missing_reason": null,
@@ -682,7 +684,7 @@ window.CRISIS_DATA = {
   "fetch_failures": [],
   "warnings": [],
   "backtest": {
-    "as_of": "2026-11-20",
+    "as_of": "2026-11-21",
     "nodes": [
       {
         "id": "N1",
@@ -2151,13 +2153,21 @@ window.CRISIS_DATA = {
             "close": "2025-10",
             "unknown_start": false,
             "category": "误报"
+          },
+          {
+            "start": "2026-11",
+            "visible": "2026-11-21",
+            "end": "2026-11",
+            "close": null,
+            "unknown_start": false,
+            "category": "待观察"
           }
         ],
         "summary": {
           "提前命中": 10,
           "同期或滞后确认": 12,
           "误报": 22,
-          "待观察": 0,
+          "待观察": 1,
           "起点未知": 0
         }
       },
