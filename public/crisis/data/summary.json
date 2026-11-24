@@ -1,9 +1,7 @@
 {
-  "level": "留意",
-  "decided_by": [
-    "N2"
-  ],
+  "level": "正常",
+  "decided_by": [],
   "insufficient_nodes": [],
-  "as_of": "2026-11-21",
-  "data_fetched_at": "2026-11-21T04:14:56+00:00"
+  "as_of": "2026-11-24",
+  "data_fetched_at": "2026-11-24T07:04:42+00:00"
 }
