@@ -1,7 +1,7 @@
 window.CRISIS_DATA = {
-  "generated_at": "2026-11-26T05:23:27+00:00",
-  "as_of": "2026-11-26",
-  "data_fetched_at": "2026-11-26T05:23:21+00:00",
+  "generated_at": "2026-11-27T05:17:45+00:00",
+  "as_of": "2026-11-27",
+  "data_fetched_at": "2026-11-27T05:17:41+00:00",
   "level": {
     "level": "正常",
     "decided_by": [],
@@ -619,8 +619,8 @@ window.CRISIS_DATA = {
       "measure_unit": null,
       "measure_decimals": null,
       "cumulative": null,
-      "value": -16.206,
-      "date": "2026-11-25",
+      "value": -16.043365,
+      "date": "2026-11-26",
       "level": null,
       "label": "下跌",
       "missing_reason": null,
@@ -682,7 +682,7 @@ window.CRISIS_DATA = {
   "fetch_failures": [],
   "warnings": [],
   "backtest": {
-    "as_of": "2026-11-26",
+    "as_of": "2026-11-27",
     "nodes": [
       {
         "id": "N1",
